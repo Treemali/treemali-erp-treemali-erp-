@@ -1,0 +1,140 @@
+/* ============================================
+   TREEMALI ERP — Pontos de Venda Styles
+   ============================================ */
+
+/* Tabs */
+.tabs-bar { display:flex; gap:var(--space-2); margin-bottom:var(--space-6); border-bottom:2px solid var(--color-gray-200); }
+.tab-btn { display:flex; align-items:center; gap:var(--space-2); padding:var(--space-3) var(--space-5); font-size:var(--text-sm); font-weight:var(--weight-medium); font-family:var(--font-body); color:var(--color-gray-500); background:none; border:none; border-bottom:2px solid transparent; margin-bottom:-2px; cursor:pointer; transition:all var(--transition-fast); white-space:nowrap; }
+.tab-btn:hover { color:var(--color-taupe); }
+.tab-btn.active { color:var(--color-taupe-dark); border-bottom-color:var(--color-taupe); }
+.tab-panel { display:none; animation:fadeUp 0.3s ease; }
+.tab-panel.active { display:block; }
+
+/* Toolbar */
+.panel-toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--space-4); gap:var(--space-4); flex-wrap:wrap; }
+.search-box { display:flex; align-items:center; gap:var(--space-2); background:var(--color-white); border:1.5px solid var(--color-gray-200); border-radius:var(--radius-md); padding:var(--space-2) var(--space-4); color:var(--color-gray-400); flex:1; max-width:340px; transition:border-color var(--transition-fast); }
+.search-box:focus-within { border-color:var(--color-taupe); color:var(--color-taupe); }
+.search-box input { border:none; outline:none; background:none; font-size:var(--text-sm); color:var(--color-gray-700); width:100%; }
+.search-box input::placeholder { color:var(--color-gray-400); }
+
+/* Grid de pontos */
+.pontos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-5);
+}
+
+.ponto-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-100);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+  animation: fadeUp 0.4s ease both;
+}
+
+.ponto-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.ponto-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.ponto-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--color-taupe-pale);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-taupe-dark);
+  font-size: 1.5rem;
+}
+
+.ponto-card-actions {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.btn-table { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:var(--radius-md); color:var(--color-gray-400); transition:color var(--transition-fast),background var(--transition-fast); cursor:pointer; border:none; background:none; }
+.btn-table:hover { background:var(--color-gray-100); color:var(--color-taupe-dark); }
+.btn-table.danger:hover { background:var(--color-danger-light); color:var(--color-danger); }
+
+.ponto-nome {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-medium);
+  color: var(--color-gray-800);
+  margin-bottom: var(--space-1);
+}
+
+.ponto-responsavel {
+  font-size: var(--text-sm);
+  color: var(--color-gray-400);
+  margin-bottom: var(--space-4);
+}
+
+.ponto-stats {
+  display: flex;
+  gap: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-gray-100);
+}
+
+.ponto-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ponto-stat-label {
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ponto-stat-value {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-gray-800);
+}
+
+/* Preview transferência */
+.transf-preview {
+  background: var(--color-gray-100);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+  margin-top: var(--space-4);
+  display: flex;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.preview-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.preview-label {
+  font-size: var(--text-xs);
+  color: var(--color-gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Form */
+.form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:var(--space-4); }
+.form-grid-2 .fg-full { grid-column:span 2; }
+@media (max-width:480px) { .form-grid-2 { grid-template-columns:1fr; } .form-grid-2 .fg-full { grid-column:span 1; } }
+
+.modal-error { margin-top:var(--space-4); padding:var(--space-3) var(--space-4); background:var(--color-danger-light); border:1px solid rgba(176,85,85,0.2); border-radius:var(--radius-md); font-size:var(--text-sm); color:var(--color-danger); }
+.table-loading { text-align:center; color:var(--color-gray-400); font-size:var(--text-sm); padding:var(--space-10) !important; }
