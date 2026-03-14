@@ -1,0 +1,322 @@
+/* ============================================
+   TREEMALI ERP — Dashboard Styles
+   ============================================ */
+
+/* ── Greeting */
+#dashGreetName {
+  color: var(--color-taupe);
+}
+
+/* ── KPI Grid */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.kpi-card {
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-gray-100);
+  padding: var(--space-5);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  box-shadow: var(--shadow-xs);
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+  animation: fadeUp 0.5s ease both;
+}
+
+.kpi-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.kpi-card:nth-child(1) { animation-delay: 0.05s; }
+.kpi-card:nth-child(2) { animation-delay: 0.10s; }
+.kpi-card:nth-child(3) { animation-delay: 0.15s; }
+.kpi-card:nth-child(4) { animation-delay: 0.20s; }
+.kpi-card:nth-child(5) { animation-delay: 0.25s; }
+.kpi-card:nth-child(6) { animation-delay: 0.30s; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.kpi-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.kpi-icon-sales       { background: rgba(90,138,106,0.12); color: var(--color-success); }
+.kpi-icon-month       { background: rgba(74,127,165,0.12); color: var(--color-info); }
+.kpi-icon-profit      { background: rgba(158,142,130,0.15); color: var(--color-taupe-dark); }
+.kpi-icon-conditional { background: rgba(196,154,60,0.12); color: var(--color-warning); }
+.kpi-icon-payable     { background: rgba(176,85,85,0.12);  color: var(--color-danger); }
+.kpi-icon-receivable  { background: rgba(90,138,106,0.12); color: var(--color-success); }
+
+.kpi-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.kpi-label {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--color-gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.kpi-value {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-medium);
+  color: var(--color-gray-800);
+  line-height: 1.1;
+}
+
+.kpi-count {
+  font-family: var(--font-body);
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-semibold);
+}
+
+.kpi-sub {
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+}
+
+/* ── Alerts Banner */
+.alerts-banner {
+  background: var(--color-warning-light);
+  border: 1px solid rgba(196,154,60,0.25);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-6);
+  animation: fadeUp 0.4s ease 0.2s both;
+}
+
+.alerts-banner-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-warning);
+}
+
+.alerts-banner-header span {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.alerts-banner-link {
+  font-size: var(--text-sm);
+  color: var(--color-warning);
+  font-weight: var(--weight-medium);
+}
+
+.alerts-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.alert-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-gray-700);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid rgba(196,154,60,0.15);
+}
+
+.alert-item:last-child {
+  border-bottom: none;
+}
+
+.alert-item-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-warning);
+  flex-shrink: 0;
+}
+
+.alert-item-dot.danger { background: var(--color-danger); }
+
+/* ── Dashboard 2-col grid */
+.dashboard-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+  animation: fadeUp 0.5s ease 0.3s both;
+}
+
+@media (max-width: 900px) {
+  .dashboard-grid-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Card header variants */
+.card-title {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+  color: var(--color-gray-800);
+}
+
+.card-subtitle {
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.card-link {
+  font-size: var(--text-sm);
+  color: var(--color-taupe);
+  font-weight: var(--weight-medium);
+}
+
+.card-link:hover {
+  color: var(--color-taupe-dark);
+}
+
+/* ── Top Products List */
+.top-products-list {
+  padding: var(--space-4) 0;
+}
+
+.product-rank-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-6);
+  border-bottom: 1px solid var(--color-gray-100);
+  transition: background var(--transition-fast);
+}
+
+.product-rank-item:last-child {
+  border-bottom: none;
+}
+
+.product-rank-item:hover {
+  background: var(--color-taupe-pale);
+}
+
+.product-rank-num {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-light);
+  color: var(--color-taupe-light);
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.product-rank-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.product-rank-name {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-gray-700);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.product-rank-qty {
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+}
+
+.product-rank-bar-wrap {
+  width: 80px;
+  height: 4px;
+  background: var(--color-gray-200);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.product-rank-bar {
+  height: 100%;
+  background: var(--color-taupe);
+  border-radius: var(--radius-full);
+  transition: width 0.8s ease;
+}
+
+/* ── Recent Sales List */
+.recent-sales-list {
+  padding: var(--space-2) 0;
+}
+
+.sale-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-6);
+  border-bottom: 1px solid var(--color-gray-100);
+  transition: background var(--transition-fast);
+}
+
+.sale-item:last-child {
+  border-bottom: none;
+}
+
+.sale-item:hover {
+  background: var(--color-taupe-pale);
+}
+
+.sale-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sale-item-client {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-gray-700);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sale-item-time {
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+}
+
+.sale-item-value {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-gray-800);
+  white-space: nowrap;
+}
+
+/* ── Empty State (small) */
+.empty-state-sm {
+  padding: var(--space-8);
+  text-align: center;
+  color: var(--color-gray-400);
+  font-size: var(--text-sm);
+}
+
+.p-0 { padding: 0 !important; }
