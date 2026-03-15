@@ -1,0 +1,24 @@
+{
+  "name": "Treemali ERP",
+  "short_name": "Treemali",
+  "description": "Sistema de Gestão Comercial Treemali",
+  "start_url": "/pages/dashboard.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAFAF8",
+  "theme_color": "#9E8E82",
+  "icons": [
+    {
+      "src": "/assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
