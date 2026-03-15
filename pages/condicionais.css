@@ -1,0 +1,265 @@
+/* ============================================
+   TREEMALI ERP — Condicionais Styles
+   ============================================ */
+
+/* KPIs */
+.cond-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.ckpi-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-100);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  box-shadow: var(--shadow-xs);
+  animation: fadeUp 0.4s ease both;
+}
+
+.ckpi-card.ckpi-warn   { border-color: rgba(196,154,60,0.3); background: var(--color-warning-light); }
+.ckpi-card.ckpi-danger { border-color: rgba(176,85,85,0.3);  background: var(--color-danger-light); }
+.ckpi-card.ckpi-success{ border-color: rgba(90,138,106,0.3); background: var(--color-success-light); }
+
+.ckpi-icon { font-size: 1.75rem; flex-shrink: 0; }
+
+.ckpi-label {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--color-gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 2px;
+}
+
+.ckpi-value {
+  display: block;
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-medium);
+  color: var(--color-gray-800);
+}
+
+/* Filtros */
+.cond-filtros {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--color-white);
+  border: 1.5px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4);
+  color: var(--color-gray-400);
+  flex: 1;
+  max-width: 280px;
+  transition: border-color var(--transition-fast);
+}
+.search-box:focus-within { border-color: var(--color-taupe); }
+.search-box input { border: none; outline: none; background: none; font-size: var(--text-sm); color: var(--color-gray-700); width: 100%; }
+.search-box input::placeholder { color: var(--color-gray-400); }
+
+.filtro-status-btns {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.filtro-btn {
+  padding: var(--space-2) var(--space-4);
+  border: 1.5px solid var(--color-gray-200);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  font-family: var(--font-body);
+  color: var(--color-gray-500);
+  background: var(--color-white);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.filtro-btn:hover { border-color: var(--color-taupe); color: var(--color-taupe); }
+.filtro-btn.active { background: var(--color-taupe); border-color: var(--color-taupe); color: var(--color-white); }
+
+/* Cards de condicionais */
+.cond-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-100);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-4);
+  overflow: hidden;
+  box-shadow: var(--shadow-xs);
+  transition: box-shadow var(--transition-fast);
+  animation: fadeUp 0.3s ease both;
+}
+
+.cond-card:hover { box-shadow: var(--shadow-md); }
+
+.cond-card.status-vencida { border-left: 4px solid var(--color-danger); }
+.cond-card.status-vencendo { border-left: 4px solid var(--color-warning); }
+.cond-card.status-ok { border-left: 4px solid var(--color-taupe); }
+.cond-card.status-convertida { border-left: 4px solid var(--color-success); opacity: 0.85; }
+.cond-card.status-cancelada { border-left: 4px solid var(--color-gray-300); opacity: 0.7; }
+
+.cond-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-gray-100);
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.cond-cliente {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-gray-800);
+}
+
+.cond-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-gray-500);
+  flex-wrap: wrap;
+}
+
+.cond-prazo-ok     { color: var(--color-success); font-weight: var(--weight-medium); }
+.cond-prazo-warn   { color: var(--color-warning); font-weight: var(--weight-medium); }
+.cond-prazo-vencida{ color: var(--color-danger);  font-weight: var(--weight-semibold); }
+
+.cond-card-body {
+  padding: var(--space-4) var(--space-5);
+}
+
+.cond-itens-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.cond-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-gray-100);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  gap: var(--space-3);
+}
+
+.cond-item-nome { flex: 1; font-weight: var(--weight-medium); color: var(--color-gray-700); }
+.cond-item-qtd  { color: var(--color-gray-500); white-space: nowrap; }
+.cond-item-valor{ font-weight: var(--weight-semibold); color: var(--color-gray-800); white-space: nowrap; }
+
+.cond-item.status-vendido  { background: var(--color-success-light); }
+.cond-item.status-devolvido{ background: var(--color-gray-200); opacity: 0.7; }
+
+.cond-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid var(--color-gray-100);
+  background: var(--color-gray-100);
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.cond-total {
+  font-size: var(--text-sm);
+  color: var(--color-gray-600);
+}
+
+.cond-total strong {
+  color: var(--color-gray-800);
+  font-size: var(--text-base);
+}
+
+.cond-acoes { display: flex; gap: var(--space-2); }
+
+/* Modal de condicional */
+.modal-cond-info {
+  background: var(--color-gray-100);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin-bottom: var(--space-5);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.modal-cond-info-item { display: flex; flex-direction: column; gap: 2px; }
+.modal-cond-info-label { font-size: var(--text-xs); color: var(--color-gray-400); text-transform: uppercase; letter-spacing: 0.05em; }
+.modal-cond-info-value { font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--color-gray-700); }
+
+.modal-itens-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-gray-600);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--space-3);
+}
+
+.modal-item-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-gray-200);
+  margin-bottom: var(--space-2);
+  background: var(--color-white);
+}
+
+.modal-item-check {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--color-taupe);
+}
+
+.modal-item-info { flex: 1; }
+.modal-item-nome { font-size: var(--text-sm); font-weight: var(--weight-medium); }
+.modal-item-sub  { font-size: var(--text-xs); color: var(--color-gray-400); }
+
+.modal-item-qtd-ctrl {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.modal-item-qtd-ctrl input {
+  width: 52px;
+  text-align: center;
+  padding: 4px 6px;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+}
+
+.modal-item-valor { font-weight: var(--weight-semibold); font-size: var(--text-sm); white-space: nowrap; }
+
+.modal-error { margin-top: var(--space-4); padding: var(--space-3) var(--space-4); background: var(--color-danger-light); border: 1px solid rgba(176,85,85,0.2); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-danger); }
+.table-loading { text-align: center; color: var(--color-gray-400); font-size: var(--text-sm); padding: var(--space-10); }
