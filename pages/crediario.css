@@ -1,0 +1,119 @@
+/* ============================================
+   TREEMALI ERP — Crediário / Contas a Receber
+   ============================================ */
+
+/* KPIs */
+.cred-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px,1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.crkpi {
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-100);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  box-shadow: var(--shadow-xs);
+  animation: fadeUp 0.4s ease both;
+}
+
+.crkpi-green  { border-left: 4px solid var(--color-success); }
+.crkpi-danger { border-left: 4px solid var(--color-danger);  background: var(--color-danger-light); }
+.crkpi-blue   { border-left: 4px solid var(--color-info); }
+
+.crkpi-icon  { font-size: 1.5rem; flex-shrink: 0; }
+.crkpi-label { display:block; font-size:var(--text-xs); color:var(--color-gray-500); text-transform:uppercase; letter-spacing:0.06em; font-weight:var(--weight-medium); margin-bottom:2px; }
+.crkpi-value { display:block; font-family:var(--font-display); font-size:var(--text-xl); font-weight:var(--weight-medium); color:var(--color-gray-800); }
+.crkpi-danger .crkpi-value { color: var(--color-danger); }
+
+/* Filtros */
+.desp-filtros { display:flex; align-items:center; gap:var(--space-3); margin-bottom:var(--space-4); flex-wrap:wrap; }
+.search-box { display:flex; align-items:center; gap:var(--space-2); background:var(--color-white); border:1.5px solid var(--color-gray-200); border-radius:var(--radius-md); padding:var(--space-2) var(--space-4); color:var(--color-gray-400); flex:1; max-width:280px; transition:border-color var(--transition-fast); }
+.search-box:focus-within { border-color: var(--color-taupe); }
+.search-box input { border:none; outline:none; background:none; font-size:var(--text-sm); color:var(--color-gray-700); width:100%; }
+.search-box input::placeholder { color: var(--color-gray-400); }
+
+/* Cards de crediário */
+.cred-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-100);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-4);
+  overflow: hidden;
+  box-shadow: var(--shadow-xs);
+  transition: box-shadow var(--transition-fast);
+  animation: fadeUp 0.3s ease both;
+}
+
+.cred-card:hover { box-shadow: var(--shadow-md); }
+.cred-card.has-vencida { border-left: 4px solid var(--color-danger); }
+.cred-card.quitado    { border-left: 4px solid var(--color-success); opacity: 0.85; }
+
+.cred-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-gray-100);
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.cred-cliente { font-size:var(--text-base); font-weight:var(--weight-semibold); color:var(--color-gray-800); }
+.cred-meta    { font-size:var(--text-sm); color:var(--color-gray-400); margin-top:2px; }
+
+.cred-card-body {
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.cred-progress-wrap { flex: 1; min-width: 200px; }
+.cred-progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-xs);
+  color: var(--color-gray-500);
+  margin-bottom: var(--space-2);
+}
+.cred-progress-bar {
+  height: 8px;
+  background: var(--color-gray-200);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.cred-progress-fill {
+  height: 100%;
+  background: var(--color-success);
+  border-radius: var(--radius-full);
+  transition: width 0.8s ease;
+}
+
+.cred-valores { display:flex; gap:var(--space-6); flex-wrap:wrap; }
+.cred-valor-item { display:flex; flex-direction:column; gap:2px; }
+.cred-valor-label { font-size:var(--text-xs); color:var(--color-gray-400); text-transform:uppercase; letter-spacing:0.05em; }
+.cred-valor-num   { font-size:var(--text-base); font-weight:var(--weight-semibold); color:var(--color-gray-800); }
+.cred-valor-num.danger  { color: var(--color-danger); }
+.cred-valor-num.success { color: var(--color-success); }
+
+.cred-card-footer {
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid var(--color-gray-100);
+  background: var(--color-gray-100);
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Table helpers */
+.table-loading { text-align:center; color:var(--color-gray-400); font-size:var(--text-sm); padding:var(--space-10) !important; }
+.btn-table { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:var(--radius-md); color:var(--color-gray-400); transition:all var(--transition-fast); cursor:pointer; border:none; background:none; }
+.btn-table:hover { background:var(--color-gray-100); color:var(--color-taupe-dark); }
+.btn-table.success:hover { background:var(--color-success-light); color:var(--color-success); }
