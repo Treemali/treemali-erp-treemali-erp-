@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Treemali — Relatórios</title>
+  <!-- PWA / Ícone do App -->
+  <link rel="manifest" href="../manifest.json" />
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="../assets/favicon-16.png" />
+  <meta name="theme-color" content="#9E8E82" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Treemali" />
+  <link rel="stylesheet" href="../css/variables.css" />
+  <link rel="stylesheet" href="../css/global.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <link rel="stylesheet" href="relatorios.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><img src="../assets/logo.png" alt="Treemali" /><span class="sidebar-logo-text">Treemali</span></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section"><div class="nav-section-label">Principal</div>
+        <a href="dashboard.html" class="nav-item"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><span class="nav-item-label">Dashboard</span></a>
+        <a href="alertas.html" class="nav-item"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span><span class="nav-item-label">Alertas</span></a>
+      </div>
+      <div class="nav-section"><div class="nav-section-label">Vendas</div>
+        <a href="vendas.html" class="nav-item"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span><span class="nav-item-label">Nova Venda</span></a>
+        <a href="condicionais.html" class="nav-item"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></span><span class="nav-item-label">Condicionais</span></a>
+        <a href="cadastros.html" class="nav-item">
+          <span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+          <span class="nav-item-label">Cadastros</span>
+        </a>
+      </div>
+      <div class="nav-section"><div class="nav-section-label">Estoque</div>
+        <a href="estoque.html" class="nav-item"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 8h14M5 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm14 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg></span><span class="nav-item-label">Estoque</span></a>
+        <a href="pontos-venda.html" class="nav-item"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span><span class="nav-item-label">Pontos de Venda</span></a>
+        <a href="saidas.html" class="nav-item">
+          <span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
+          <span class="nav-item-label">Saídas N. Comerciais</span>
+        </a>
+      </div>
+      <div class="nav-section" data-role="master"><div class="nav-section-label">Financeiro</div>
+        <a href="financeiro.html"     class="nav-item" data-role="master"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span class="nav-item-label">Financeiro</span></a>
+        <a href="despesas.html"       class="nav-item" data-role="master"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span><span class="nav-item-label">Despesas</span></a>
+        <a href="contas-pagar.html"   class="nav-item" data-role="master"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span><span class="nav-item-label">Contas a Pagar</span></a>
+        <a href="crediario.html"      class="nav-item" data-role="master"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span><span class="nav-item-label">Crediário</span></a>
+        <a href="contas-receber.html" class="nav-item" data-role="master"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span><span class="nav-item-label">Contas a Receber</span></a>
+      </div>
+      <div class="nav-section" data-role="master"><div class="nav-section-label">Administração</div>
+        <a href="relatorios.html"    class="nav-item active" data-role="master"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span class="nav-item-label">Relatórios</span></a>
+        <a href="configuracoes.html" class="nav-item" data-role="master"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span class="nav-item-label">Configurações</span></a>
+      </div>
+    </nav>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="userAvatar">A</div>
+      <div class="user-info"><div class="user-name" id="userName">Usuário</div><div class="user-role" id="userRole">Perfil</div></div>
+      <button class="btn-logout" id="btnLogout" title="Sair"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+    </div>
+  </aside>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <div class="app-main">
+    <header class="app-header">
+      <button class="btn-sidebar-toggle" id="btnSidebarToggle"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+      <div class="header-breadcrumb"><span>Treemali</span><span class="breadcrumb-sep">›</span><span class="breadcrumb-current">Relatórios</span></div>
+      <div class="header-actions"><div class="header-date" id="headerDate"></div></div>
+    </header>
+
+    <main class="page-content">
+      <div class="page-title-bar">
+        <div class="page-title-group"><h2>Relatórios</h2><p>Análises completas do negócio</p></div>
+        <div class="page-actions">
+          <button class="btn btn-ghost btn-sm" onclick="imprimirRelatorio()">🖨️ Imprimir</button>
+          <button class="btn btn-primary btn-sm" onclick="copiarRelatorio()">📋 Copiar</button>
+        </div>
+      </div>
+
+      <!-- Filtro de período -->
+      <div class="rel-filtros">
+        <div class="rel-filtro-group">
+          <label class="form-label">Período</label>
+          <div class="periodo-btns">
+            <button class="periodo-btn" data-p="hoje"    onclick="setPeriodo('hoje')">Hoje</button>
+            <button class="periodo-btn active" data-p="mes" onclick="setPeriodo('mes')">Este Mês</button>
+            <button class="periodo-btn" data-p="ano"    onclick="setPeriodo('ano')">Este Ano</button>
+            <button class="periodo-btn" data-p="custom" onclick="setPeriodo('custom')">Personalizado</button>
+          </div>
+        </div>
+        <div class="rel-filtro-group" id="customDatas" style="display:none">
+          <label class="form-label">De</label>
+          <input type="date" class="form-input" id="dataInicio" style="width:150px" />
+          <label class="form-label">Até</label>
+          <input type="date" class="form-input" id="dataFim" style="width:150px" />
+          <button class="btn btn-primary btn-sm" onclick="gerarRelatorios()">Gerar</button>
+        </div>
+      </div>
+
+      <!-- Abas de relatórios -->
+      <div class="tabs-bar">
+        <button class="tab-btn active" data-tab="lucro">💰 Lucro Real</button>
+        <button class="tab-btn" data-tab="vendas">🛒 Vendas</button>
+        <button class="tab-btn" data-tab="produtos">📦 Produtos</button>
+        <button class="tab-btn" data-tab="vendedores">👤 Vendedores</button>
+        <button class="tab-btn" data-tab="estoque">🗄️ Estoque</button>
+      </div>
+
+      <!-- ── ABA LUCRO REAL ── -->
+      <div class="tab-panel active" id="tab-lucro">
+        <div class="rel-grid-2">
+          <div class="card">
+            <div class="card-header"><h3 class="rel-card-title">📊 Resultado do Período</h3></div>
+            <div class="card-body" id="relResultado"><div class="rel-loading">Carregando...</div></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3 class="rel-card-title">📈 Distribuição do Lucro</h3></div>
+            <div class="card-body" id="relDistribuicao"><div class="rel-loading">Carregando...</div></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:var(--space-6)">
+          <div class="card-header"><h3 class="rel-card-title">💳 Taxas da Maquininha por Bandeira</h3></div>
+          <div class="card-body" style="padding:0">
+            <div class="table-wrapper" style="border:none">
+              <table><thead><tr><th>Bandeira</th><th>Total Vendido</th><th>Taxa Paga</th><th>Líquido</th></tr></thead>
+              <tbody id="relTaxas"><tr><td colspan="4" class="rel-loading">Carregando...</td></tr></tbody></table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ABA VENDAS ── -->
+      <div class="tab-panel" id="tab-vendas">
+        <div class="rel-kpis" id="relVendasKpis"></div>
+        <div class="card" style="margin-top:var(--space-4)">
+          <div class="card-header"><h3 class="rel-card-title">Todas as Vendas do Período</h3></div>
+          <div class="card-body" style="padding:0">
+            <div class="table-wrapper" style="border:none">
+              <table><thead><tr><th>Data</th><th>Cliente</th><th>Tipo</th><th>Pagamento</th><th>Total</th><th>Lucro</th></tr></thead>
+              <tbody id="relVendasTabela"><tr><td colspan="6" class="rel-loading">Carregando...</td></tr></tbody></table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ABA PRODUTOS ── -->
+      <div class="tab-panel" id="tab-produtos">
+        <div class="rel-grid-2">
+          <div class="card">
+            <div class="card-header"><h3 class="rel-card-title">🏆 Produtos Mais Vendidos</h3></div>
+            <div class="card-body" style="padding:0" id="relProdutosMaisVendidos">
+              <div class="rel-loading">Carregando...</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3 class="rel-card-title">💎 Produtos Mais Lucrativos</h3></div>
+            <div class="card-body" style="padding:0" id="relProdutosMaisLucrativos">
+              <div class="rel-loading">Carregando...</div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:var(--space-6)">
+          <div class="card-header"><h3 class="rel-card-title">📋 Margem por Produto</h3></div>
+          <div class="card-body" style="padding:0">
+            <div class="table-wrapper" style="border:none">
+              <table><thead><tr><th>Produto</th><th>Custo Unit.</th><th>Preço Médio Vendido</th><th>Qtd Vendida</th><th>Rentabilidade s/ Custo</th><th>Lucro Total</th></tr></thead>
+              <tbody id="relMargemProdutos"><tr><td colspan="6" class="rel-loading">Carregando...</td></tr></tbody></table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ABA VENDEDORES ── -->
+      <div class="tab-panel" id="tab-vendedores">
+        <div class="card">
+          <div class="card-header"><h3 class="rel-card-title">👤 Desempenho por Vendedor</h3></div>
+          <div class="card-body" style="padding:0">
+            <div class="table-wrapper" style="border:none">
+              <table><thead><tr><th>Vendedor</th><th>Qtd Vendas</th><th>Total Vendido</th><th>Descontos</th><th>Ticket Médio</th></tr></thead>
+              <tbody id="relVendedores"><tr><td colspan="5" class="rel-loading">Carregando...</td></tr></tbody></table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ABA ESTOQUE ── -->
+      <div class="tab-panel" id="tab-estoque">
+        <div class="rel-kpis" id="relEstoqueKpis"></div>
+        <div class="card" style="margin-top:var(--space-4)">
+          <div class="card-header">
+            <h3 class="rel-card-title">Posição Atual do Estoque</h3>
+            <div style="display:flex;gap:var(--space-2)">
+              <select class="form-input" id="filtroRelEstoque" style="width:160px;padding:var(--space-2) var(--space-3);font-size:var(--text-sm)" onchange="gerarRelEstoque()">
+                <option value="">Todos</option>
+                <option value="baixo">Estoque Baixo</option>
+                <option value="zero">Zerados</option>
+              </select>
+            </div>
+          </div>
+          <div class="card-body" style="padding:0">
+            <div class="table-wrapper" style="border:none">
+              <table><thead><tr><th>Produto</th><th>SKU</th><th>Categoria</th><th>Estoque</th><th>Mínimo</th><th>Custo Unit.</th><th>Valor Total</th></tr></thead>
+              <tbody id="relEstoqueTabela"><tr><td colspan="7" class="rel-loading">Carregando...</td></tr></tbody></table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="../js/auth.js"></script>
+<script src="../js/layout.js"></script>
+<script src="relatorios.js"></script>
+</body>
+</html>
