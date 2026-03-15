@@ -1,0 +1,213 @@
+/* ============================================
+   TREEMALI ERP — Configurações Styles
+   ============================================ */
+
+/* Abas */
+.tabs-bar { display:flex; gap:var(--space-2); margin-bottom:var(--space-6); border-bottom:2px solid var(--color-gray-200); flex-wrap:wrap; }
+.tab-btn { display:flex; align-items:center; gap:var(--space-2); padding:var(--space-3) var(--space-4); font-size:var(--text-sm); font-weight:var(--weight-medium); font-family:var(--font-body); color:var(--color-gray-500); background:none; border:none; border-bottom:2px solid transparent; margin-bottom:-2px; cursor:pointer; transition:all var(--transition-fast); white-space:nowrap; }
+.tab-btn:hover { color:var(--color-taupe); }
+.tab-btn.active { color:var(--color-taupe-dark); border-bottom-color:var(--color-taupe); }
+.tab-panel { display:none; animation:fadeUp 0.3s ease; }
+.tab-panel.active { display:block; }
+
+/* Seções */
+.cfg-section { margin-bottom: var(--space-8); }
+
+.cfg-section-title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-medium);
+  color: var(--color-gray-800);
+  margin-bottom: var(--space-2);
+}
+
+.cfg-section-desc {
+  font-size: var(--text-sm);
+  color: var(--color-gray-400);
+  margin-bottom: var(--space-4);
+}
+
+.cfg-hint {
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+  margin-top: var(--space-1);
+  display: block;
+}
+
+/* Form grids */
+.form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:var(--space-4); }
+.form-grid-2 .fg-full { grid-column:span 2; }
+.form-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:var(--space-4); }
+@media (max-width:600px) {
+  .form-grid-2, .form-grid-3 { grid-template-columns:1fr; }
+  .form-grid-2 .fg-full { grid-column:span 1; }
+}
+
+/* Preview distribuição */
+.dist-preview {
+  background: var(--color-gray-100);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  margin-top: var(--space-5);
+}
+
+.dist-preview-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-gray-600);
+  margin-bottom: var(--space-3);
+}
+
+.dist-preview-items { display: flex; flex-direction: column; gap: var(--space-2); }
+
+.dist-prev-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-sm);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+}
+
+.dist-prev-row.destaque {
+  background: var(--color-taupe-pale);
+  font-weight: var(--weight-semibold);
+  color: var(--color-taupe-dark);
+}
+
+/* Taxas da maquininha */
+.taxas-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--space-4);
+}
+
+.taxas-table th {
+  background: var(--color-gray-100);
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-gray-600);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.taxas-table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-gray-100);
+  font-size: var(--text-sm);
+}
+
+.taxas-table input[type="number"] {
+  width: 90px;
+  padding: var(--space-2) var(--space-3);
+  border: 1.5px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  text-align: center;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.taxas-table input[type="number"]:focus {
+  border-color: var(--color-taupe);
+}
+
+/* Categorias grid */
+.categorias-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.categoria-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-white);
+  border: 1.5px solid var(--color-gray-200);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-gray-700);
+  animation: fadeUp 0.3s ease;
+}
+
+.btn-chip-edit {
+  color: var(--color-gray-300);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
+  display: flex;
+  align-items: center;
+}
+
+.btn-chip-edit:hover { color: var(--color-taupe); }
+
+/* Panel toolbar */
+.panel-toolbar { display:flex; align-items:center; justify-content:space-between; }
+
+/* ── Senha Rápida */
+.senha-rapida-display {
+  text-align: center;
+  padding: var(--space-8) var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.senha-rapida-codigo {
+  font-family: 'Courier New', monospace;
+  font-size: 3.5rem;
+  font-weight: 700;
+  letter-spacing: 0.5rem;
+  color: var(--color-taupe-dark);
+  background: var(--color-taupe-pale);
+  border: 2px dashed var(--color-taupe-light);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6) var(--space-8);
+  display: inline-block;
+  min-width: 280px;
+  margin-bottom: var(--space-4);
+}
+
+.senha-rapida-timer {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-gray-600);
+  margin-bottom: var(--space-2);
+}
+
+.senha-rapida-timer.urgente { color: var(--color-danger); }
+
+.senha-rapida-status {
+  font-size: var(--text-sm);
+  color: var(--color-gray-400);
+}
+
+.senha-rapida-status.usada {
+  color: var(--color-success);
+  font-weight: var(--weight-medium);
+}
+
+.senha-rapida-status.expirada {
+  color: var(--color-danger);
+  font-weight: var(--weight-medium);
+}
+
+/* Error */
+.modal-error { margin-top:var(--space-4); padding:var(--space-3) var(--space-4); background:var(--color-danger-light); border:1px solid rgba(176,85,85,0.2); border-radius:var(--radius-md); font-size:var(--text-sm); color:var(--color-danger); }
+
+/* Success toast inline */
+.cfg-success {
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-success-light);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-success);
+  font-weight: var(--weight-medium);
+}
