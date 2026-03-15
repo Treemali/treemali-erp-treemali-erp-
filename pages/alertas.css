@@ -1,0 +1,100 @@
+/* ============================================
+   TREEMALI ERP — Alertas Styles
+   ============================================ */
+
+.alerta-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px,1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.akpi {
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-100);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  box-shadow: var(--shadow-xs);
+  animation: fadeUp 0.4s ease both;
+}
+
+.akpi-danger { border-left: 4px solid var(--color-danger);  background: var(--color-danger-light); }
+.akpi-warn   { border-left: 4px solid var(--color-warning); background: var(--color-warning-light); }
+
+.akpi-icon  { font-size: 1.5rem; flex-shrink: 0; }
+.akpi-label { display:block; font-size:var(--text-xs); color:var(--color-gray-500); text-transform:uppercase; letter-spacing:0.06em; font-weight:var(--weight-medium); margin-bottom:2px; }
+.akpi-value { display:block; font-family:var(--font-display); font-size:var(--text-2xl); font-weight:var(--weight-medium); color:var(--color-gray-800); }
+.akpi-danger .akpi-value { color: var(--color-danger); }
+.akpi-warn   .akpi-value { color: var(--color-warning); }
+
+/* Grupos */
+.alerta-grupo {
+  margin-bottom: var(--space-6);
+}
+
+.alerta-grupo-titulo {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-gray-500);
+  margin-bottom: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Cards de alerta */
+.alerta-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-100);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  box-shadow: var(--shadow-xs);
+  animation: fadeUp 0.3s ease both;
+  transition: box-shadow var(--transition-fast);
+}
+
+.alerta-card:hover { box-shadow: var(--shadow-md); }
+
+.alerta-card.critico { border-left: 4px solid var(--color-danger);  background: rgba(176,85,85,0.03); }
+.alerta-card.atencao { border-left: 4px solid var(--color-warning); background: rgba(196,154,60,0.03); }
+.alerta-card.info    { border-left: 4px solid var(--color-info);    background: rgba(74,127,165,0.03); }
+
+.alerta-icone { font-size: 1.5rem; flex-shrink: 0; }
+
+.alerta-corpo { flex: 1; min-width: 0; }
+
+.alerta-titulo {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-gray-800);
+  margin-bottom: 2px;
+}
+
+.alerta-desc {
+  font-size: var(--text-xs);
+  color: var(--color-gray-500);
+}
+
+.alerta-acao {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.alerta-vazio {
+  text-align: center;
+  padding: var(--space-12);
+  color: var(--color-gray-400);
+  font-size: var(--text-sm);
+}
+
+.alerta-vazio-icon { font-size: 3rem; margin-bottom: var(--space-3); }
