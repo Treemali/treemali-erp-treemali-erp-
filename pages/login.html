@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Treemali — Entrar</title>
+  <!-- PWA / Ícone do App -->
+  <link rel="manifest" href="../manifest.json" />
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="../assets/favicon-16.png" />
+  <meta name="theme-color" content="#9E8E82" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Treemali" />
+  <link rel="stylesheet" href="../css/variables.css" />
+  <link rel="stylesheet" href="../css/global.css" />
+  <link rel="stylesheet" href="login.css" />
+
+  <!-- Supabase JS (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+</head>
+<body>
+
+  <div class="login-wrapper">
+
+    <!-- Left panel — decorative -->
+    <div class="login-panel-left" aria-hidden="true">
+      <div class="panel-texture"></div>
+      <div class="panel-content">
+        <div class="panel-quote">
+          <span class="panel-quote-mark">"</span>
+          <p>Gestão inteligente,<br/>resultado real.</p>
+        </div>
+        <div class="panel-lines">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right panel — login form -->
+    <main class="login-panel-right">
+
+      <div class="login-box">
+
+        <!-- Logo -->
+        <div class="login-logo">
+          <img src="../assets/logo.png" alt="Treemali" class="logo-img" />
+        </div>
+
+        <!-- Heading -->
+        <div class="login-heading">
+          <h1>Bem-vindo</h1>
+          <p>Acesse o sistema de gestão Treemali</p>
+        </div>
+
+        <!-- Form -->
+        <form class="login-form" id="loginForm" novalidate>
+
+          <div class="form-group">
+            <label class="form-label" for="login">Usuário</label>
+            <div class="input-wrapper">
+              <span class="input-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+              </span>
+              <input
+                type="text"
+                id="login"
+                name="login"
+                class="form-input with-icon"
+                placeholder="Seu usuário ou e-mail"
+                autocomplete="username"
+                autofocus
+              />
+            </div>
+            <span class="form-error hidden" id="loginError">Por favor, informe seu usuário.</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="senha">Senha</label>
+            <div class="input-wrapper">
+              <span class="input-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              </span>
+              <input
+                type="password"
+                id="senha"
+                name="senha"
+                class="form-input with-icon with-toggle"
+                placeholder="Sua senha"
+                autocomplete="current-password"
+              />
+              <button type="button" class="toggle-password" id="togglePassword" aria-label="Mostrar senha">
+                <svg class="eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <svg class="eye-closed hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                  <line x1="1" y1="1" x2="23" y2="23"/>
+                </svg>
+              </button>
+            </div>
+            <span class="form-error hidden" id="senhaError">Por favor, informe sua senha.</span>
+          </div>
+
+          <!-- Error geral -->
+          <div class="login-error-msg hidden" id="generalError">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span id="generalErrorText">Usuário ou senha incorretos.</span>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-full btn-login" id="btnLogin">
+            <span class="btn-text">Entrar</span>
+            <span class="spinner hidden" id="loginSpinner"></span>
+          </button>
+
+        </form>
+
+        <!-- Footer -->
+        <p class="login-footer">
+          © 2026 Treemali — Todos os direitos reservados
+        </p>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <script src="../js/auth.js"></script>
+</body>
+</html>
