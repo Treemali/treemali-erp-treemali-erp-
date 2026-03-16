@@ -3,7 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Treemali — Contas a Receber</title>
+  <title>Treemali — Saídas Não Comerciais</title>
+  <link rel="icon" type="image/png" href="../assets/logo.png" />
+  <link rel="stylesheet" href="../css/variables.css" />
+  <link rel="stylesheet" href="../css/global.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <link rel="stylesheet" href="../css/mobile.css" />
+  <link rel="stylesheet" href="saidas.css" />
   <!-- PWA / Ícone do App -->
   <link rel="manifest" href="../manifest.json" />
   <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png" />
@@ -13,11 +19,6 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Treemali" />
-  <link rel="stylesheet" href="../css/variables.css" />
-  <link rel="stylesheet" href="../css/global.css" />
-  <link rel="stylesheet" href="../css/layout.css" />
-  <link rel="stylesheet" href="../css/mobile.css" />
-  <link rel="stylesheet" href="crediario.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/config.js"></script>
 </head>
@@ -29,30 +30,24 @@
       <div class="nav-section"><div class="nav-section-label">Principal</div>
         <a href="dashboard.html" class="nav-item"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><span class="nav-item-label">Dashboard</span></a>
         <a href="alertas.html" class="nav-item"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span><span class="nav-item-label">Alertas</span></a>
+        <a href="cadastros.html" class="nav-item"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nav-item-label">Cadastros</span></a>
       </div>
       <div class="nav-section"><div class="nav-section-label">Vendas</div>
         <a href="vendas.html" class="nav-item"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span><span class="nav-item-label">Nova Venda</span></a>
         <a href="historico-vendas.html" class="nav-item"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span><span class="nav-item-label">Histórico de Vendas</span></a>
         <a href="condicionais.html" class="nav-item"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></span><span class="nav-item-label">Condicionais</span></a>
-        <a href="cadastros.html" class="nav-item">
-          <span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
-          <span class="nav-item-label">Cadastros</span>
-        </a>
       </div>
       <div class="nav-section"><div class="nav-section-label">Estoque</div>
         <a href="estoque.html" class="nav-item"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 8h14M5 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm14 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg></span><span class="nav-item-label">Estoque</span></a>
         <a href="pontos-venda.html" class="nav-item"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span><span class="nav-item-label">Pontos de Venda</span></a>
-        <a href="saidas.html" class="nav-item" data-role="master">
-          <span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
-          <span class="nav-item-label">Saídas N. Comerciais</span>
-        </a>
+        <a href="saidas.html" class="nav-item active" data-role="master"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span><span class="nav-item-label">Saídas N. Comerciais</span></a>
       </div>
       <div class="nav-section" data-role="master"><div class="nav-section-label">Financeiro</div>
         <a href="financeiro.html"     class="nav-item" data-role="master"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span class="nav-item-label">Financeiro</span></a>
         <a href="despesas.html"       class="nav-item" data-role="master"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span><span class="nav-item-label">Despesas</span></a>
         <a href="contas-pagar.html"   class="nav-item" data-role="master"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span><span class="nav-item-label">Contas a Pagar</span></a>
         <a href="crediario.html"      class="nav-item" data-role="master"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span><span class="nav-item-label">Crediário</span></a>
-        <a href="contas-receber.html" class="nav-item active" data-role="master"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span><span class="nav-item-label">Contas a Receber</span></a>
+        <a href="contas-receber.html" class="nav-item" data-role="master"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span><span class="nav-item-label">Contas a Receber</span></a>
       </div>
       <div class="nav-section" data-role="master"><div class="nav-section-label">Administração</div>
         <a href="relatorios.html"    class="nav-item" data-role="master"><span class="nav-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span class="nav-item-label">Relatórios</span></a>
@@ -70,57 +65,80 @@
   <div class="app-main">
     <header class="app-header">
       <button class="btn-sidebar-toggle" id="btnSidebarToggle"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
-      <div class="header-breadcrumb"><span>Treemali</span><span class="breadcrumb-sep">›</span><span class="breadcrumb-current">Contas a Receber</span></div>
+      <div class="header-breadcrumb"><span>Treemali</span><span class="breadcrumb-sep">›</span><span class="breadcrumb-current">Saídas Não Comerciais</span></div>
       <div class="header-actions"><div class="header-date" id="headerDate"></div></div>
     </header>
 
     <main class="page-content">
       <div class="page-title-bar">
-        <div class="page-title-group"><h2>Contas a Receber</h2><p>Parcelas de crediário pendentes e pagas</p></div>
+        <div class="page-title-group">
+          <h2>Saídas Não Comerciais</h2>
+          <p>Parcerias, brindes, marketing e uso pessoal — saída pelo custo do produto</p>
+        </div>
         <div class="page-actions">
-          <a href="crediario.html" class="btn btn-ghost btn-sm">← Ver Crediários</a>
+          <button class="btn btn-primary btn-sm" onclick="abrirNovaSaida()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nova Saída
+          </button>
         </div>
       </div>
 
       <!-- KPIs -->
-      <div class="cred-kpis">
-        <div class="crkpi crkpi-danger">
-          <span class="crkpi-icon">⚠️</span>
-          <div><span class="crkpi-label">Vencidas</span><span class="crkpi-value" id="kpiRcVencidas">—</span></div>
+      <div class="saida-kpis">
+        <div class="skpi">
+          <span class="skpi-icon">📦</span>
+          <div><span class="skpi-label">Saídas este mês</span><span class="skpi-value" id="kpiQtdMes">—</span></div>
         </div>
-        <div class="crkpi crkpi-blue">
-          <span class="crkpi-icon">📅</span>
-          <div><span class="crkpi-label">Vencem esta semana</span><span class="crkpi-value" id="kpiRcSemana">—</span></div>
+        <div class="skpi skpi-red">
+          <span class="skpi-icon">💸</span>
+          <div><span class="skpi-label">Custo total este mês</span><span class="skpi-value" id="kpiCustoMes">—</span></div>
         </div>
-        <div class="crkpi">
-          <span class="crkpi-icon">📋</span>
-          <div><span class="crkpi-label">Pendentes do mês</span><span class="crkpi-value" id="kpiRcMes">—</span></div>
+        <div class="skpi">
+          <span class="skpi-icon">🤝</span>
+          <div><span class="skpi-label">Parcerias / Influencer</span><span class="skpi-value" id="kpiParcerias">—</span></div>
         </div>
-        <div class="crkpi crkpi-green">
-          <span class="crkpi-icon">✅</span>
-          <div><span class="crkpi-label">Recebidas este mês</span><span class="crkpi-value" id="kpiRcPagas">—</span></div>
+        <div class="skpi">
+          <span class="skpi-icon">📣</span>
+          <div><span class="skpi-label">Marketing / Divulgação</span><span class="skpi-value" id="kpiMarketing">—</span></div>
         </div>
       </div>
 
       <!-- Filtros -->
-      <div class="desp-filtros">
+      <div class="saida-filtros">
         <div class="search-box">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="searchReceber" placeholder="Buscar cliente..." />
+          <input type="text" id="searchSaidas" placeholder="Buscar produto, destino..." />
         </div>
-        <select class="form-input" id="filtroStatusRec" style="width:160px;padding:var(--space-2) var(--space-3);font-size:var(--text-sm)" onchange="carregarContasReceber()">
-          <option value="pendente">Pendentes</option>
-          <option value="vencido">Vencidas</option>
-          <option value="pago">Pagas</option>
-          <option value="">Todas</option>
+        <select class="form-input" id="filtroCategoriaSaida" style="width:200px;padding:var(--space-2) var(--space-3);font-size:var(--text-sm)" onchange="carregarSaidas()">
+          <option value="">Todas as categorias</option>
+          <option value="parceria">🤝 Parceria / Influencer</option>
+          <option value="brinde">🎁 Brinde a Cliente</option>
+          <option value="marketing">📣 Marketing / Divulgação</option>
+          <option value="uso_pessoal">👗 Uso Pessoal</option>
+          <option value="perda">📦 Perda / Avaria</option>
+          <option value="outros">📋 Outros</option>
         </select>
+        <select class="form-input" id="filtroMesSaida" style="width:160px;padding:var(--space-2) var(--space-3);font-size:var(--text-sm)" onchange="carregarSaidas()"></select>
       </div>
 
       <!-- Tabela -->
       <div class="table-wrapper">
         <table>
-          <thead><tr><th>Cliente</th><th>Parcela</th><th>Vencimento</th><th>Valor</th><th>Status</th><th>Pago em</th><th>Ação</th></tr></thead>
-          <tbody id="bodyContasReceber"><tr><td colspan="7" class="table-loading">Carregando...</td></tr></tbody>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Produto</th>
+              <th>Qtd</th>
+              <th>Categoria</th>
+              <th>Destino / Motivo</th>
+              <th>Custo Unit.</th>
+              <th>Custo Total</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="bodySaidas">
+            <tr><td colspan="8" class="table-loading">Carregando...</td></tr>
+          </tbody>
         </table>
       </div>
 
@@ -128,38 +146,91 @@
   </div>
 </div>
 
-<!-- MODAL REGISTRAR RECEBIMENTO -->
-<div class="modal-overlay" id="modalReceberParc">
-  <div class="modal" style="max-width:380px">
+<!-- MODAL NOVA SAÍDA -->
+<div class="modal-overlay" id="modalSaida">
+  <div class="modal" style="max-width:520px">
     <div class="modal-header">
-      <h3 class="modal-title">Registrar Recebimento</h3>
-      <button class="modal-close" onclick="fecharModal('modalReceberParc')">✕</button>
+      <h3 class="modal-title" id="tituloModalSaida">Nova Saída Não Comercial</h3>
+      <button class="modal-close" onclick="fecharModal('modalSaida')">✕</button>
     </div>
     <div class="modal-body">
-      <p id="msgReceberParc" style="color:var(--color-gray-600);font-size:var(--text-sm);margin-bottom:var(--space-4)"></p>
-      <div class="form-group">
-        <label class="form-label">Forma de Pagamento</label>
-        <select class="form-input" id="formaReceberParc">
-          <option value="dinheiro">💵 Dinheiro</option>
-          <option value="pix">⚡ PIX</option>
-          <option value="debito">💳 Débito</option>
-          <option value="credito">💳 Crédito</option>
-        </select>
+      <input type="hidden" id="saidaId" />
+
+      <div class="form-grid-2">
+        <div class="form-group fg-full">
+          <label class="form-label">Produto *</label>
+          <select class="form-input" id="saidaProduto" onchange="preencherCustoProduto()">
+            <option value="">Selecione o produto...</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Quantidade *</label>
+          <input type="number" class="form-input" id="saidaQtd" min="1" value="1" oninput="calcularCustoSaida()" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Custo Unitário (R$)</label>
+          <input type="number" class="form-input" id="saidaCustoUnit" min="0" step="0.01" placeholder="0,00" oninput="calcularCustoSaida()" />
+          <small style="font-size:var(--text-xs);color:var(--color-gray-400);margin-top:4px;display:block">Preenchido automaticamente com o custo cadastrado</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Custo Total</label>
+          <div class="saida-custo-total" id="saidaCustoTotal">R$ 0,00</div>
+        </div>
+
+        <div class="form-group fg-full">
+          <label class="form-label">Categoria *</label>
+          <div class="saida-categorias-grid">
+            <button type="button" class="cat-btn active" data-cat="parceria"   onclick="setCategoria('parceria')">🤝 Parceria / Influencer</button>
+            <button type="button" class="cat-btn" data-cat="brinde"            onclick="setCategoria('brinde')">🎁 Brinde a Cliente</button>
+            <button type="button" class="cat-btn" data-cat="marketing"         onclick="setCategoria('marketing')">📣 Marketing / Divulgação</button>
+            <button type="button" class="cat-btn" data-cat="uso_pessoal"       onclick="setCategoria('uso_pessoal')">👗 Uso Pessoal</button>
+            <button type="button" class="cat-btn" data-cat="perda"             onclick="setCategoria('perda')">📦 Perda / Avaria</button>
+            <button type="button" class="cat-btn" data-cat="outros"            onclick="setCategoria('outros')">📋 Outros</button>
+          </div>
+          <input type="hidden" id="saidaCategoria" value="parceria" />
+        </div>
+
+        <div class="form-group fg-full">
+          <label class="form-label">Destino / Motivo *</label>
+          <input type="text" class="form-input" id="saidaDestino" placeholder="Ex: @influencer_fulana, Foto campanha verão, Cliente João..." />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Data *</label>
+          <input type="date" class="form-input" id="saidaData" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Lançar como Despesa?</label>
+          <select class="form-input" id="saidaLancarDespesa">
+            <option value="true">✅ Sim — lançar no financeiro</option>
+            <option value="false">Não — só baixar estoque</option>
+          </select>
+        </div>
+
+        <div class="form-group fg-full">
+          <label class="form-label">Observação</label>
+          <input type="text" class="form-input" id="saidaObs" placeholder="Detalhes adicionais..." />
+        </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Data do Recebimento</label>
-        <input type="date" class="form-input" id="dataReceberParc" />
-      </div>
+
+      <p class="modal-error hidden" id="erroSaida"></p>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="fecharModal('modalReceberParc')">Cancelar</button>
-      <button class="btn btn-primary" id="btnConfirmarReceberParc">Confirmar</button>
+      <button class="btn btn-ghost" onclick="fecharModal('modalSaida')">Cancelar</button>
+      <button class="btn btn-primary" id="btnSalvarSaida" onclick="salvarSaida()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        Registrar Saída
+      </button>
     </div>
   </div>
 </div>
 
 <script src="../js/auth.js"></script>
 <script src="../js/layout.js"></script>
-<script src="contas-receber.js"></script>
+<script src="saidas.js"></script>
 </body>
 </html>

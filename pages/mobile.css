@@ -1,0 +1,550 @@
+/* ============================================
+   TREEMALI ERP — Mobile Responsive (Global)
+   Referência: condicionais.html (aprovada)
+   Breakpoints: 768px | 540px | 400px
+   ============================================ */
+
+/* ══════════════════════════════════════════════
+   UTILITÁRIOS GERAIS
+══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+
+  /* Tabelas: scroll horizontal em vez de quebrar */
+  .table-wrapper,
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    min-width: 500px;
+  }
+
+  /* Modais: ocupam a tela toda no mobile */
+  .modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 92vh;
+    margin: 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  .modal-overlay {
+    align-items: flex-end !important;
+  }
+
+  .modal-body {
+    overflow-y: auto;
+    max-height: 65vh;
+  }
+
+  .modal-footer {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .modal-footer .btn {
+    flex: 1;
+    min-width: 120px;
+    justify-content: center;
+  }
+
+  /* Page title bar */
+  .page-title-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+  }
+
+  .page-actions {
+    width: 100%;
+  }
+
+  .page-actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* Formulários: 1 coluna sempre */
+  .form-grid-2,
+  .form-grid-3 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .form-grid-2 .fg-full,
+  .form-grid-3 .fg-full {
+    grid-column: span 1 !important;
+  }
+
+  /* Botões de ação maiores para toque */
+  .btn-table {
+    width: 36px !important;
+    height: 36px !important;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   DASHBOARD
+══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* KPI grid: 2 colunas no mobile */
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--space-3) !important;
+  }
+
+  .kpi-card {
+    padding: var(--space-3) !important;
+  }
+
+  .kpi-value {
+    font-size: var(--text-xl) !important;
+  }
+
+  /* Seção inferior: 1 coluna */
+  .dashboard-grid-2col {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 400px) {
+  .kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   VENDAS
+══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .venda-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .venda-resumo-col {
+    order: -1;
+  }
+
+  .tipo-venda-btns {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .forma-pagamento-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Tabela de itens: scroll */
+  .venda-itens-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .add-produto-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .add-produto-row .form-input {
+    width: 100% !important;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   ESTOQUE
+══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* KPIs estoque: 2 colunas */
+  .estoque-kpis {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--space-3) !important;
+  }
+
+  .ekpi-card {
+    padding: var(--space-3) !important;
+  }
+
+  /* Tabela de estoque tem muitas colunas: forçar scroll */
+  .estoque-table-wrapper,
+  .card-body {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .estoque-table-wrapper table,
+  .card table {
+    min-width: 700px;
+  }
+
+  /* Abas de estoque */
+  .estoque-tabs {
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: var(--space-1);
+  }
+}
+
+/* ══════════════════════════════════════════════
+   HISTÓRICO DE VENDAS
+══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* KPIs */
+  .hv-kpis {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--space-3) !important;
+  }
+
+  /* Filtros: empilhar */
+  .hv-filtros {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: var(--space-2) !important;
+  }
+
+  .hv-filtros .form-input,
+  .hv-filtros select,
+  .hv-filtros input {
+    width: 100% !important;
+  }
+
+  /* Tabela com 8 colunas: scroll obrigatório */
+  .hv-table-wrapper,
+  .historico-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .hv-table-wrapper table,
+  .historico-table-wrap table {
+    min-width: 700px;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   FINANCEIRO
+══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* KPIs financeiro: 2 colunas */
+  .fin-kpis {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--space-3) !important;
+  }
+
+  .fkpi {
+    padding: var(--space-3) !important;
+  }
+
+  .fkpi-value {
+    font-size: var(--text-lg) !important;
+  }
+
+  /* Grid resultado + distribuição: 1 coluna */
+  .fin-grid-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Tabela fluxo */
+  .fin-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .fin-table-wrap table {
+    min-width: 480px;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   DESPESAS
+══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* Filtros: empilhar */
+  .desp-filtros {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: var(--space-2) !important;
+  }
+
+  .desp-filtros .form-input,
+  .desp-filtros select,
+  .desp-filtros input {
+    width: 100% !important;
+  }
+
+  /* Tabela */
+  .desp-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .desp-table-wrap table {
+    min-width: 560px;
+  }
+
+  /* Formas de pagamento no modal */
+  .forma-pag-row {
+    flex-wrap: wrap;
+  }
+
+  .forma-pag-row select,
+  .forma-pag-row input {
+    min-width: 0 !important;
+    flex: 1;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   CREDIÁRIO
+══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .cred-kpis {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--space-3) !important;
+  }
+
+  .crkpi {
+    padding: var(--space-3) !important;
+  }
+
+  .crkpi-value {
+    font-size: var(--text-lg) !important;
+  }
+
+  /* Tabela */
+  .cred-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .cred-table-wrap table {
+    min-width: 560px;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   CONTAS A PAGAR
+══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .cp-kpis {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--space-3) !important;
+  }
+
+  .cpkpi {
+    padding: var(--space-3) !important;
+  }
+
+  .cpkpi-value {
+    font-size: var(--text-lg) !important;
+  }
+
+  /* Tabela */
+  .cp-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .cp-table-wrap table {
+    min-width: 520px;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   CONTAS A RECEBER
+══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .cr-kpis,
+  .rec-kpis {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--space-3) !important;
+  }
+
+  .cr-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .cr-table-wrap table {
+    min-width: 520px;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   RELATÓRIOS
+══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* Filtros */
+  .rel-filtro-group {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: var(--space-2) !important;
+  }
+
+  .rel-filtro-group select,
+  .rel-filtro-group input,
+  .rel-filtro-group .form-input {
+    width: 100% !important;
+  }
+
+  /* Tabela */
+  .rel-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .rel-table-wrap table {
+    min-width: 560px;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   PONTOS DE VENDA
+══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .pontos-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   SAÍDAS NÃO COMERCIAIS
+══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .sai-kpis {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--space-3) !important;
+  }
+
+  /* Tabela com 9 colunas: scroll */
+  .sai-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sai-table-wrap table {
+    min-width: 680px;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   ALERTAS
+══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .alerta-kpis {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--space-3) !important;
+  }
+
+  .akpi {
+    padding: var(--space-3) !important;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   CADASTROS
+══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .categorias-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Filtros */
+  .cad-filtros {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: var(--space-2) !important;
+  }
+
+  .cad-filtros .form-input,
+  .cad-filtros select {
+    width: 100% !important;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   CONFIGURAÇÕES
+══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .config-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .config-section {
+    padding: var(--space-4) !important;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   TABELAS GLOBAIS (qualquer página)
+   Envolve qualquer <table> dentro de .card
+══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* Todo card que contém tabela ganha scroll */
+  .card .card-body {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: var(--space-3) !important;
+  }
+
+  /* Tipografia menor nas tabelas */
+  tbody td,
+  thead th {
+    font-size: var(--text-xs) !important;
+    padding: var(--space-2) var(--space-3) !important;
+    white-space: nowrap;
+  }
+
+  /* Badges menores */
+  .badge {
+    font-size: 0.65rem !important;
+    padding: 2px 6px !important;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   EXTRA PEQUENO (< 400px) — iPhones SE etc.
+══════════════════════════════════════════════ */
+
+@media (max-width: 400px) {
+  .page-content {
+    padding: var(--space-3) !important;
+  }
+
+  .page-title-group h2 {
+    font-size: var(--text-2xl) !important;
+  }
+
+  /* KPIs: 1 coluna */
+  .fin-kpis,
+  .hv-kpis,
+  .estoque-kpis,
+  .cred-kpis,
+  .cp-kpis,
+  .sai-kpis,
+  .alerta-kpis {
+    grid-template-columns: 1fr !important;
+  }
+
+  .modal-footer .btn {
+    width: 100% !important;
+  }
+}
