@@ -647,3 +647,28 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => aplicarOcultarValores(true), 300);
   }
 });
+
+// ============================================================
+// ANTI-DUPLO CLIQUE — helper global
+// ============================================================
+
+/**
+ * Bloqueia um botão durante processamento async.
+ * Uso: const liberar = bloquearBtn('meuBtn', 'Salvando...');
+ *      await minhaOperacao();
+ *      liberar();
+ */
+function bloquearBtn(idOuEl, textoProcessando) {
+  const el = typeof idOuEl === 'string' ? document.getElementById(idOuEl) : idOuEl;
+  if (!el || el._processando) return () => {};
+  el._processando = true;
+  el.disabled = true;
+  const textoOriginal = el.textContent;
+  if (textoProcessando) el.textContent = textoProcessando;
+  return function liberarBtn() {
+    el._processando = false;
+    el.disabled = false;
+    el.textContent = textoOriginal;
+  };
+}
+window.bloquearBtn = bloquearBtn;
