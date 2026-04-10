@@ -1,0 +1,398 @@
+/**
+ * TREEMALI ERP — Dashboard Page
+ * Loads KPIs, alerts, top products, and recent sales
+ */
+
+document.addEventListener('DOMContentLoaded', async () => {
+
+  const user = Auth.getUser();
+
+  // Greet user
+  document.getElementById('dashGreetName').textContent =
+    (user?.nome || user?.login || 'Usuário').split(' ')[0];
+
+  // Hide master-only cards for sellers
+  if (Auth.isSeller()) {
+    document.querySelectorAll('[data-role="master"]').forEach(el => {
+      el.style.display = 'none';
+    });
+  }
+
+  // Load all dashboard data in parallel
+  await Promise.all([
+    loadKPIs(),
+    loadAlerts(),
+    loadTopProducts(),
+    loadRecentSales(),
+    loadAniversariantes(),
+  ]);
+});
+
+// ============================================================
+// KPI DATA
+// ============================================================
+
+async function loadKPIs() {
+  // Real implementation queries Supabase
+  // Demo data shown when not connected
+
+  const today = new Date();
+  const y = today.getFullYear();
+  const m = today.getMonth();
+  const startOfMonth = `${y}-${String(m + 1).padStart(2, '0')}-01T00:00:00Z`;
+  const startOfDay   = new Date(today.setHours(0,0,0,0)).toISOString();
+
+  if (!window._supabase) {
+    // Demo values
+    renderKPIs({
+      vendasHoje:      1850.00,
+      vendasHojeQtd:   5,
+      vendasMes:       24750.00,
+      vendasMesQtd:    78,
+      lucroMes:        9100.00,
+      condicionaisAbertas: 3,
+      condicionaisVencendo: 1,
+      contasPagar:     3200.00,
+      contasReceber:   6800.00,
+      saldoMes:        18350.00,
+      saldoTotal:      52800.00,
+    });
+    return;
+  }
+
+  // Supabase queries
+  try {
+    const y = today.getFullYear();
+    const m = today.getMonth();
+    const startOfMonthStr = `${y}-${String(m + 1).padStart(2, '0')}-01`;
+    const endOfMonthStr   = `${y}-${String(m + 1).padStart(2, '0')}-${new Date(y, m + 1, 0).getDate()}`;
+
+    const [vendasHojeRes, vendasMesRes, condicionaisRes, despesasPagarRes, crediarioReceberRes, despSimplesRes,
+            parcPagMesRes, parcPagTotalRes,
+            vendasSaldoMesRes, despPagasMesRes, despSimpPagasMesRes, saidasMesRes, ajustesMesRes,
+            vendasSaldoTotalRes, despPagasTotalRes, despSimpPagasTotalRes, saidasTotalRes, ajustesTotalRes] = await Promise.all([
+      window._supabase.from('vendas').select('valor_total').gte('created_at', startOfDay).eq('status', 'concluida'),
+      window._supabase.from('vendas').select('valor_total, lucro, valor_taxa, custo_total, bandeira_id').gte('created_at', startOfMonth).eq('status', 'concluida'),
+      window._supabase.from('condicionais').select('id, prazo_devolucao').eq('status', 'em_condicional'),
+      window._supabase.from('parcelas_despesa').select('valor').in('status', ['pendente', 'vencido']),
+      window._supabase.from('parcelas_crediario').select('valor, data_pag, crediario(vendas(status))').in('status', ['pendente', 'vencido']),
+      window._supabase.from('despesas').select('valor').in('status', ['pendente', 'vencido']).eq('parcelado', false),
+
+      // CREDIÁRIO PAGO (Entradas Reais)
+      window._supabase.from('parcelas_crediario').select('valor, valor_taxa').eq('status','pago').gte('data_pag', startOfMonthStr).lte('data_pag', endOfMonthStr),
+      window._supabase.from('parcelas_crediario').select('valor, valor_taxa').eq('status','pago'),
+
+      // SALDO MÊS
+      window._supabase.from('vendas').select('valor_liquido, forma_pagamento').gte('created_at', startOfMonth).lte('created_at', new Date().toISOString()).eq('status', 'concluida'),
+      window._supabase.from('parcelas_despesa').select('valor').eq('status','pago').gte('data_pag', startOfMonthStr).lte('data_pag', endOfMonthStr),
+      window._supabase.from('despesas').select('valor, data_lancamento, vencimento, created_at').eq('status','pago').eq('parcelado',false).gte('created_at', startOfMonth),
+      window._supabase.from('saidas_nao_comerciais').select('custo_total').gte('data', startOfMonthStr).lte('data', endOfMonthStr),
+      // Ajustes de caixa do mês
+      window._supabase.from('ajustes_caixa').select('valor').gte('data', startOfMonthStr).lte('data', endOfMonthStr),
+
+      // SALDO HISTÓRICO
+      window._supabase.from('vendas').select('valor_liquido, forma_pagamento').eq('status','concluida'),
+      window._supabase.from('parcelas_despesa').select('valor').eq('status','pago'),
+      window._supabase.from('despesas').select('valor').eq('status','pago').eq('parcelado',false),
+      window._supabase.from('saidas_nao_comerciais').select('custo_total'),
+      // Ajustes de caixa histórico total
+      window._supabase.from('ajustes_caixa').select('valor'),
+    ]);
+
+    const vendasHojeTotal = (vendasHojeRes.data || []).reduce((s, v) => s + (v.valor_total||0), 0);
+    const vendasMesTotal  = (vendasMesRes.data  || []).reduce((s, v) => s + (v.valor_total||0), 0);
+
+    // Lucro recalculado na hora (mais preciso que o campo gravado)
+    const vendasMes = vendasMesRes.data || [];
+    const lucroMes  = vendasMes.reduce((s,v) => s + ((v.valor_total||0) - (v.bandeira_id ? (v.valor_taxa||0) : 0) - (v.custo_total||0)), 0);
+
+    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 2);
+    const condicionaisVencendo = (condicionaisRes.data || []).filter(c =>
+      c.prazo_devolucao && new Date(c.prazo_devolucao) <= tomorrow
+    ).length;
+
+    const contasPagar   = (despesasPagarRes.data   || []).reduce((s, p) => s + (p.valor||0), 0)
+                        + (despSimplesRes.data      || []).reduce((s, d) => s + (d.valor||0), 0);
+    // Contas a Receber: exclui parcelas de vendas canceladas
+    const contasReceber = (crediarioReceberRes.data || [])
+      .filter(p => p.crediario?.vendas?.status !== 'cancelada')
+      .reduce((s, p) => s + (p.valor||0), 0);
+
+    // Saldo do mês — exclui crediário (não recebido ainda)
+    const inicioStr = startOfMonthStr;
+    const fimStr    = endOfMonthStr;
+    const entradasMesVendas = (vendasSaldoMesRes.data||[])
+      .filter(v => v.forma_pagamento !== 'crediario')
+      .reduce((s,v) => s+(v.valor_liquido||0), 0);
+    const entradasMesParc   = (parcPagMesRes.data||[]).reduce((s,p) => s+(p.valor||0), 0);
+    const entradasMes       = entradasMesVendas + entradasMesParc;
+    const saidasMes = (despPagasMesRes.data||[]).reduce((s,d) => s+(d.valor||0), 0)
+                    + (despSimpPagasMesRes.data||[]).reduce((s,d) => s+(d.valor||0), 0)
+                    + (saidasMesRes.data||[]).reduce((s,d) => s+(d.custo_total||0), 0);
+    const ajustesMes = (ajustesMesRes.data||[]).reduce((s,d) => s+(d.valor||0), 0);
+    const saldoMes  = entradasMes - saidasMes + ajustesMes;
+
+    // Saldo histórico — exclui crediário não recebido
+    const entradasTotalVendas = (vendasSaldoTotalRes.data||[])
+      .filter(v => v.forma_pagamento !== 'crediario')
+      .reduce((s,v) => s+(v.valor_liquido||0), 0);
+    const entradasTotalParc   = (parcPagTotalRes.data||[]).reduce((s,p) => s+(p.valor||0), 0);
+    const entradasTotal       = entradasTotalVendas + entradasTotalParc;
+    const saidasTotal   = (despPagasTotalRes.data||[]).reduce((s,d) => s+(d.valor||0), 0)
+                        + (despSimpPagasTotalRes.data||[]).reduce((s,d) => s+(d.valor||0), 0)
+                        + (saidasTotalRes.data||[]).reduce((s,d) => s+(d.custo_total||0), 0);
+    const ajustesTotal  = (ajustesTotalRes.data||[]).reduce((s,d) => s+(d.valor||0), 0);
+    const saldoTotal    = entradasTotal - saidasTotal + ajustesTotal;
+
+    renderKPIs({
+      vendasHoje:   vendasHojeTotal,
+      vendasHojeQtd: (vendasHojeRes.data || []).length,
+      vendasMes:    vendasMesTotal,
+      vendasMesQtd: (vendasMesRes.data  || []).length,
+      lucroMes,
+      condicionaisAbertas:  (condicionaisRes.data || []).length,
+      condicionaisVencendo,
+      contasPagar,
+      contasReceber,
+      saldoMes,
+      saldoTotal,
+    });
+
+  } catch (err) {
+    console.error('Erro ao carregar KPIs:', err);
+  }
+}
+
+function renderKPIs(data) {
+  setText('kpiVendasHoje',    Format.currency(data.vendasHoje));
+  setText('kpiVendasHojeQtd', `${data.vendasHojeQtd} venda${data.vendasHojeQtd !== 1 ? 's' : ''}`);
+  setText('kpiVendasMes',     Format.currency(data.vendasMes));
+  setText('kpiVendasMesQtd',  `${data.vendasMesQtd} venda${data.vendasMesQtd !== 1 ? 's' : ''}`);
+  setText('kpiLucro',         Format.currency(data.lucroMes));
+  setText('kpiCondicionais',  data.condicionaisAbertas);
+  setText('kpiCondicionaisVenc',
+    data.condicionaisVencendo > 0
+      ? `⚠ ${data.condicionaisVencendo} vencendo`
+      : 'Todas no prazo'
+  );
+  setText('kpiPagar',   Format.currency(data.contasPagar));
+  setText('kpiReceber', Format.currency(data.contasReceber));
+
+  // Saldo de caixa — só visível para master
+  const saldoMesEl   = document.getElementById('kpiSaldoMes');
+  const saldoTotalEl = document.getElementById('kpiSaldoTotal');
+  if (saldoMesEl && data.saldoMes !== undefined) {
+    saldoMesEl.textContent = Format.currency(data.saldoMes);
+    saldoMesEl.style.color = data.saldoMes >= 0 ? 'var(--color-success)' : 'var(--color-danger)';
+  }
+  if (saldoTotalEl && data.saldoTotal !== undefined) {
+    saldoTotalEl.textContent = Format.currency(data.saldoTotal);
+    saldoTotalEl.style.color = data.saldoTotal >= 0 ? 'var(--color-info)' : 'var(--color-danger)';
+  }
+}
+
+// ============================================================
+// ALERTS
+// ============================================================
+
+async function loadAlerts() {
+  const alerts = [];
+
+  if (!window._supabase) {
+    // Demo alerts
+    alerts.push(
+      { type: 'warning', text: 'Produto "Camiseta Branca M" com estoque baixo (2 unidades)' },
+      { type: 'danger',  text: 'Condicional de Ana Silva vence hoje' },
+    );
+  } else {
+    // TODO: query estoque_minimo, condicionais vencidas, parcelas vencidas
+  }
+
+  // Update badge
+  const badge = document.getElementById('navAlertBadge');
+  const dot   = document.getElementById('alertDot');
+
+  if (alerts.length > 0) {
+    if (badge) { badge.textContent = alerts.length; badge.style.display = ''; }
+    if (dot)   { dot.style.display = ''; }
+
+    // Show banner
+    const banner = document.getElementById('alertsBanner');
+    const list   = document.getElementById('alertsList');
+    if (banner && list) {
+      list.innerHTML = alerts.map(a => `
+        <div class="alert-item">
+          <span class="alert-item-dot ${a.type === 'danger' ? 'danger' : ''}"></span>
+          <span>${a.text}</span>
+        </div>
+      `).join('');
+      banner.classList.remove('hidden');
+    }
+  }
+}
+
+// ============================================================
+// TOP PRODUCTS
+// ============================================================
+
+async function loadTopProducts() {
+  let products = [];
+
+  if (!window._supabase) {
+    products = [
+      { nome: 'Camiseta Preta P',    qtd: 24 },
+      { nome: 'Calça Jeans 38',       qtd: 18 },
+      { nome: 'Blusa Floral M',       qtd: 15 },
+      { nome: 'Tênis Casual 39',      qtd: 11 },
+      { nome: 'Vestido Midi Bege',    qtd: 8  },
+    ];
+  } else {
+    // TODO: GROUP BY produto_id on itens_venda
+  }
+
+  const maxQtd = products[0]?.qtd || 1;
+  const list   = document.getElementById('topProductsList');
+
+  if (!list) return;
+
+  if (products.length === 0) {
+    list.innerHTML = '<div class="empty-state-sm">Nenhuma venda este mês</div>';
+    return;
+  }
+
+  list.innerHTML = products.map((p, i) => `
+    <div class="product-rank-item">
+      <span class="product-rank-num">${i + 1}</span>
+      <div class="product-rank-info">
+        <div class="product-rank-name">${p.nome}</div>
+        <div class="product-rank-qty">${p.qtd} vendidos</div>
+      </div>
+      <div class="product-rank-bar-wrap">
+        <div class="product-rank-bar" style="width: ${Math.round((p.qtd / maxQtd) * 100)}%"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// RECENT SALES
+// ============================================================
+
+async function loadRecentSales() {
+  let sales = [];
+
+  if (!window._supabase) {
+    sales = [
+      { cliente: 'Ana Silva',    valor: 320.00,  hora: '14:32', pagamento: 'PIX'     },
+      { cliente: 'Pedro Souza',  valor: 185.50,  hora: '13:15', pagamento: 'Débito'  },
+      { cliente: 'Maria Lima',   valor: 740.00,  hora: '11:48', pagamento: '3x Visa' },
+      { cliente: 'Carlos Neto',  valor:  95.90,  hora: '10:22', pagamento: 'PIX'     },
+      { cliente: 'Julia Ramos',  valor: 430.00,  hora: '09:05', pagamento: 'Crédito' },
+    ];
+  } else {
+    // TODO: query last 5 vendas
+  }
+
+  const list = document.getElementById('recentSalesList');
+  if (!list) return;
+
+  if (sales.length === 0) {
+    list.innerHTML = '<div class="empty-state-sm">Nenhuma venda hoje</div>';
+    return;
+  }
+
+  list.innerHTML = sales.map(s => `
+    <div class="sale-item">
+      <div class="sale-item-info">
+        <div class="sale-item-client">${s.cliente}</div>
+        <div class="sale-item-time">${s.hora} · ${s.pagamento}</div>
+      </div>
+      <div class="sale-item-value">${Format.currency(s.valor)}</div>
+    </div>
+  `).join('');
+}
+
+// ── Helper
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+// ============================================================
+// ANIVERSARIANTES
+// ============================================================
+
+async function loadAniversariantes() {
+  const hoje = new Date();
+  const dia  = String(hoje.getDate()).padStart(2, '0');
+  const mes  = String(hoje.getMonth() + 1).padStart(2, '0');
+
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                 'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  // Atualiza legendas
+  setText('dataHoje',  `${dia}/${mes}`);
+  setText('mesAtual',  meses[hoje.getMonth()]);
+
+  let clientes = [];
+
+  if (!window._supabase) {
+    // Demo
+    clientes = [
+      { nome: 'Ana Silva',   data_nascimento: `1990-${mes}-${dia}` },
+      { nome: 'Pedro Souza', data_nascimento: `1985-${mes}-10`     },
+    ];
+  } else {
+    const { data } = await window._supabase
+      .from('clientes')
+      .select('nome, data_nascimento, telefone')
+      .eq('ativo', true)
+      .not('data_nascimento', 'is', null);
+    clientes = data || [];
+  }
+
+  // Filtra aniversariantes do DIA
+  const doHoje = clientes.filter(c => {
+    if (!c.data_nascimento) return false;
+    const p = c.data_nascimento.split('-');
+    return p[2] === dia && p[1] === mes;
+  });
+
+  // Filtra aniversariantes do MÊS
+  const doMes = clientes.filter(c => {
+    if (!c.data_nascimento) return false;
+    return c.data_nascimento.split('-')[1] === mes;
+  }).sort((a, b) => {
+    const dA = parseInt(a.data_nascimento.split('-')[2]);
+    const dB = parseInt(b.data_nascimento.split('-')[2]);
+    return dA - dB;
+  });
+
+  renderAniversariantes('aniversariantesHoje', doHoje, true);
+  renderAniversariantes('aniversariantesMes',  doMes,  false);
+}
+
+function renderAniversariantes(containerId, lista, isHoje) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+
+  if (!lista.length) {
+    el.innerHTML = `<div class="empty-state-sm">${isHoje ? 'Nenhum aniversariante hoje 🎈' : 'Nenhum aniversariante este mês'}</div>`;
+    return;
+  }
+
+  el.innerHTML = lista.map(c => {
+    const partes = c.data_nascimento.split('-');
+    const diaNum = partes[2];
+    const idade  = new Date().getFullYear() - parseInt(partes[0]);
+    return `
+      <div class="sale-item">
+        <div class="sale-item-info">
+          <div class="sale-item-client">${isHoje ? '🎂 ' : ''}${c.nome}</div>
+          <div class="sale-item-time">${diaNum}/${partes[1]} · ${idade} anos${c.telefone ? ' · ' + c.telefone : ''}</div>
+        </div>
+        ${isHoje ? '<span class="badge badge-warning">Hoje!</span>' : ''}
+      </div>
+    `;
+  }).join('');
+}
