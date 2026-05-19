@@ -258,7 +258,41 @@ async function loadTopProducts() {
       { nome: 'Vestido Midi Bege',    qtd: 8  },
     ];
   } else {
-    // TODO: GROUP BY produto_id on itens_venda
+    try {
+      const today = new Date();
+      const y = today.getFullYear();
+      const m = today.getMonth();
+      const startOfMonth = `${y}-${String(m + 1).padStart(2, '0')}-01T00:00:00Z`;
+
+      const { data, error } = await window._supabase
+        .from('vendas')
+        .select('itens_venda(quantidade, produtos(nome))')
+        .eq('status', 'concluida')
+        .gte('created_at', startOfMonth);
+
+      if (error) throw error;
+
+      const counts = {};
+      if (data) {
+        data.forEach(v => {
+          if (v.itens_venda) {
+            v.itens_venda.forEach(item => {
+              const nome = item.produtos?.nome || 'Produto Desconhecido';
+              const qtd = item.quantidade || 0;
+              counts[nome] = (counts[nome] || 0) + qtd;
+            });
+          }
+        });
+      }
+
+      products = Object.entries(counts).map(([nome, qtd]) => ({
+        nome,
+        qtd
+      })).sort((a, b) => b.qtd - a.qtd).slice(0, 5);
+
+    } catch (err) {
+      console.error('Erro ao carregar produtos mais vendidos:', err);
+    }
   }
 
   const maxQtd = products[0]?.qtd || 1;
@@ -301,7 +335,45 @@ async function loadRecentSales() {
       { cliente: 'Julia Ramos',  valor: 430.00,  hora: '09:05', pagamento: 'Crédito' },
     ];
   } else {
-    // TODO: query last 5 vendas
+    try {
+      const today = new Date();
+      const startOfDay = new Date(today.setHours(0,0,0,0)).toISOString();
+
+      const { data, error } = await window._supabase
+        .from('vendas')
+        .select('created_at, valor_total, forma_pagamento, parcelas, clientes(nome)')
+        .eq('status', 'concluida')
+        .gte('created_at', startOfDay)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+
+      sales = (data || []).map(s => {
+        const hora = new Date(s.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        const formaMap = {
+          'dinheiro':   'Dinheiro',
+          'pix':        'PIX',
+          'debito':     'Débito',
+          'credito':    'Crédito',
+          'crediario':  'Crediário',
+          'boleto':     'Boleto',
+        };
+        let pagamento = formaMap[s.forma_pagamento] || s.forma_pagamento || '—';
+        if (s.forma_pagamento === 'credito' && s.parcelas > 1) {
+          pagamento = `${pagamento} ${s.parcelas}x`;
+        }
+        return {
+          cliente: s.clientes?.nome || 'Sem cadastro',
+          valor: s.valor_total,
+          hora,
+          pagamento
+        };
+      });
+
+    } catch (err) {
+      console.error('Erro ao carregar últimas vendas:', err);
+    }
   }
 
   const list = document.getElementById('recentSalesList');
@@ -366,16 +438,17 @@ async function loadAniversariantes() {
   const doHoje = clientes.filter(c => {
     if (!c.data_nascimento) return false;
     const p = c.data_nascimento.split('-');
-    return p[2] === dia && p[1] === mes;
+    return p.length >= 3 && p[2] === dia && p[1] === mes;
   });
 
   // Filtra aniversariantes do MÊS
   const doMes = clientes.filter(c => {
     if (!c.data_nascimento) return false;
-    return c.data_nascimento.split('-')[1] === mes;
+    const p = c.data_nascimento.split('-');
+    return p.length >= 3 && p[1] === mes;
   }).sort((a, b) => {
-    const dA = parseInt(a.data_nascimento.split('-')[2]);
-    const dB = parseInt(b.data_nascimento.split('-')[2]);
+    const dA = parseInt(a.data_nascimento.split('-')[2]) || 0;
+    const dB = parseInt(b.data_nascimento.split('-')[2]) || 0;
     return dA - dB;
   });
 
@@ -393,9 +466,11 @@ function renderAniversariantes(containerId, lista, isHoje) {
   }
 
   el.innerHTML = lista.map(c => {
+    if (!c.data_nascimento) return '';
     const partes = c.data_nascimento.split('-');
+    if (partes.length < 3) return '';
     const diaNum = partes[2];
-    const idade  = new Date().getFullYear() - parseInt(partes[0]);
+    const idade  = new Date().getFullYear() - parseInt(partes[0]) || 0;
     return `
       <div class="sale-item">
         <div class="sale-item-info">
