@@ -351,10 +351,10 @@ async function processarPagamentoCascata(credId, valorPagoTotal, forma, dataPag,
       });
       if (errRpc) throw errRpc;
 
-      valorRestante -= valorAPagar;
+      valorRestante = Math.round((valorRestante - valorAPagar) * 100) / 100;
     } else {
       const valorAPagar = valorRestante;
-      const diferenca = valorParcela - valorAPagar;
+      const diferenca = Math.round((valorParcela - valorAPagar) * 100) / 100;
 
       const { error: errUpdate } = await window._supabase
         .from('parcelas_crediario')
@@ -362,16 +362,18 @@ async function processarPagamentoCascata(credId, valorPagoTotal, forma, dataPag,
         .eq('id', parc.id);
       if (errUpdate) throw errUpdate;
 
-      const { error: errInsert } = await window._supabase
-        .from('parcelas_crediario')
-        .insert({
-          crediario_id: credId,
-          numero:       parc.numero,
-          vencimento:   parc.vencimento,
-          valor:        diferenca,
-          status:       'pendente'
-        });
-      if (errInsert) throw errInsert;
+      if (diferenca > 0.01) {
+        const { error: errInsert } = await window._supabase
+          .from('parcelas_crediario')
+          .insert({
+            crediario_id: credId,
+            numero:       parc.numero,
+            vencimento:   parc.vencimento,
+            valor:        diferenca,
+            status:       'pendente'
+          });
+        if (errInsert) throw errInsert;
+      }
 
       const { error: errRpc } = await window._supabase.rpc('processar_pagamento_crediario', {
         p_crediario_id: credId,
@@ -412,7 +414,7 @@ function processarPagamentoCascataDemo(credId, valorPagoTotal, forma, dataPag) {
       valorRestante -= valorParcela;
     } else {
       const valorAPagar = valorRestante;
-      const diferenca = valorParcela - valorAPagar;
+      const diferenca = Math.round((valorParcela - valorAPagar) * 100) / 100;
 
       parc.valor = valorAPagar;
       parc.status = 'pago';
