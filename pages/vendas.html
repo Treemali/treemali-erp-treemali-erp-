@@ -130,11 +130,29 @@
           <div class="card mb-4">
             <div class="card-body">
               <div class="form-grid-2">
-                <div class="form-group">
+                <div class="form-group" style="position:relative">
                   <label class="form-label">Cliente *</label>
-                  <select class="form-input" id="vendaCliente">
-                    <option value="">Selecione o cliente...</option>
-                  </select>
+                  <input type="text" class="form-input" id="vendaClienteBusca"
+                    placeholder="Digite o nome do cliente..."
+                    autocomplete="off"
+                    oninput="filtrarClientesVenda(this.value)"
+                    onfocus="mostrarDropdownCliente()"
+                    onblur="esconderDropdownCliente()" />
+                  <input type="hidden" id="vendaCliente" value="" />
+                  <div id="dropdownClientes" style="
+                    display:none;
+                    position:absolute;
+                    top:100%;
+                    left:0;
+                    right:0;
+                    background:#fff;
+                    border:1px solid #ddd;
+                    border-radius:6px;
+                    box-shadow:0 4px 12px rgba(0,0,0,0.12);
+                    max-height:220px;
+                    overflow-y:auto;
+                    z-index:9999;
+                  "></div>
                 </div>
                 <div class="form-group">
                   <label class="form-label">Ponto de Venda</label>
