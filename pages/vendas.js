@@ -229,8 +229,11 @@ async function carregarClientes() {
   }
   
   const opts = _clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
-  document.getElementById('vendaCliente').innerHTML =
-    '<option value="">Selecione o cliente...</option>' + opts;
+  // Guarda lista de clientes para o dropdown de busca
+  window._clientesVenda = _clientes;
+  document.getElementById('vendaCliente').value = '';
+  document.getElementById('vendaClienteBusca').value = '';
+  document.getElementById('vendaClienteBusca').value = '';
 }
 
 async function carregarBandeiras() {
@@ -1383,6 +1386,7 @@ function verMotivoCancelamento(nomeCliente, valorTotal, data, motivo) {
 function novaVenda() {
   _estado = { tipo:'normal', forma:'dinheiro', itens:[], bandeira:null, parcelas:1, taxa:0, desconto:0, subtotal:0, total:0, liquido:0, lucro:0 };
   document.getElementById('vendaCliente').value = '';
+  document.getElementById('vendaClienteBusca').value = '';
   document.getElementById('vendaObs').value = '';
   document.getElementById('vendaDesconto').value = '';
   document.getElementById('vendaPrazo').value = '';
@@ -1438,3 +1442,59 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape')
     document.querySelectorAll('.modal-overlay.active').forEach(m => fecharModal(m.id));
 });
+
+// ══════════════════════════════════════════════
+// BUSCA DE CLIENTE POR NOME
+// ══════════════════════════════════════════════
+
+function filtrarClientesVenda(termo) {
+  const dropdown = document.getElementById('dropdownClientes');
+  const hiddenInput = document.getElementById('vendaCliente');
+  const clientes = window._clientesVenda || [];
+
+  if (!termo.trim()) {
+    hiddenInput.value = '';
+    dropdown.style.display = 'none';
+    return;
+  }
+
+  const termoLower = termo.toLowerCase().trim();
+  const filtrados = clientes.filter(c =>
+    c.nome.toLowerCase().includes(termoLower)
+  );
+
+  if (!filtrados.length) {
+    dropdown.innerHTML = '<div style="padding:10px 14px;color:#888;font-size:14px;">Nenhum cliente encontrado</div>';
+    dropdown.style.display = 'block';
+    return;
+  }
+
+  dropdown.innerHTML = filtrados.map(c => {
+    const nomeEsc = c.nome.replace(/'/g, "\\'");
+    return `<div onmousedown="selecionarClienteVenda(${c.id}, '${nomeEsc}')"
+      style="padding:10px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid #f0f0f0;"
+      onmouseover="this.style.background='#f5f5f5'"
+      onmouseout="this.style.background=''">
+      ${c.nome}
+    </div>`;
+  }).join('');
+
+  dropdown.style.display = 'block';
+}
+
+function selecionarClienteVenda(id, nome) {
+  document.getElementById('vendaCliente').value = id;
+  document.getElementById('vendaClienteBusca').value = nome;
+  document.getElementById('dropdownClientes').style.display = 'none';
+}
+
+function mostrarDropdownCliente() {
+  const termo = document.getElementById('vendaClienteBusca').value;
+  if (termo.trim()) filtrarClientesVenda(termo);
+}
+
+function esconderDropdownCliente() {
+  setTimeout(() => {
+    document.getElementById('dropdownClientes').style.display = 'none';
+  }, 180);
+}
