@@ -1447,14 +1447,45 @@ document.addEventListener('keydown', e => {
 // BUSCA DE CLIENTE POR NOME
 // ══════════════════════════════════════════════
 
+function _getOuCriarDropdown() {
+  let dd = document.getElementById('dropdownClientes');
+  if (!dd) {
+    dd = document.createElement('div');
+    dd.id = 'dropdownClientes';
+    dd.style.cssText = [
+      'display:none',
+      'position:fixed',
+      'background:#fff',
+      'border:1px solid #ddd',
+      'border-radius:8px',
+      'box-shadow:0 6px 20px rgba(0,0,0,0.15)',
+      'max-height:240px',
+      'overflow-y:auto',
+      'z-index:99999',
+      'min-width:260px',
+    ].join(';');
+    document.body.appendChild(dd);
+  }
+  return dd;
+}
+
+function _posicionarDropdown() {
+  const input = document.getElementById('vendaClienteBusca');
+  const dd = _getOuCriarDropdown();
+  const rect = input.getBoundingClientRect();
+  dd.style.top  = (rect.bottom + 4) + 'px';
+  dd.style.left = rect.left + 'px';
+  dd.style.width = rect.width + 'px';
+}
+
 function filtrarClientesVenda(termo) {
-  const dropdown = document.getElementById('dropdownClientes');
+  const dd = _getOuCriarDropdown();
   const hiddenInput = document.getElementById('vendaCliente');
   const clientes = window._clientesVenda || [];
 
   if (!termo.trim()) {
     hiddenInput.value = '';
-    dropdown.style.display = 'none';
+    dd.style.display = 'none';
     return;
   }
 
@@ -1463,13 +1494,15 @@ function filtrarClientesVenda(termo) {
     c.nome.toLowerCase().includes(termoLower)
   );
 
+  _posicionarDropdown();
+
   if (!filtrados.length) {
-    dropdown.innerHTML = '<div style="padding:10px 14px;color:#888;font-size:14px;">Nenhum cliente encontrado</div>';
-    dropdown.style.display = 'block';
+    dd.innerHTML = '<div style="padding:10px 14px;color:#888;font-size:14px;">Nenhum cliente encontrado</div>';
+    dd.style.display = 'block';
     return;
   }
 
-  dropdown.innerHTML = filtrados.map(c => {
+  dd.innerHTML = filtrados.map(c => {
     const nomeEsc = c.nome.replace(/'/g, "\\'");
     return `<div onmousedown="selecionarClienteVenda(${c.id}, '${nomeEsc}')"
       style="padding:10px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid #f0f0f0;"
@@ -1479,22 +1512,38 @@ function filtrarClientesVenda(termo) {
     </div>`;
   }).join('');
 
-  dropdown.style.display = 'block';
+  dd.style.display = 'block';
 }
 
 function selecionarClienteVenda(id, nome) {
   document.getElementById('vendaCliente').value = id;
   document.getElementById('vendaClienteBusca').value = nome;
-  document.getElementById('dropdownClientes').style.display = 'none';
+  const dd = document.getElementById('dropdownClientes');
+  if (dd) dd.style.display = 'none';
 }
 
 function mostrarDropdownCliente() {
   const termo = document.getElementById('vendaClienteBusca').value;
-  if (termo.trim()) filtrarClientesVenda(termo);
+  if (termo.trim()) {
+    _posicionarDropdown();
+    filtrarClientesVenda(termo);
+  }
 }
 
 function esconderDropdownCliente() {
   setTimeout(() => {
-    document.getElementById('dropdownClientes').style.display = 'none';
+    const dd = document.getElementById('dropdownClientes');
+    if (dd) dd.style.display = 'none';
   }, 180);
 }
+
+// Reposiciona o dropdown ao rolar ou redimensionar
+window.addEventListener('scroll', () => {
+  const dd = document.getElementById('dropdownClientes');
+  if (dd && dd.style.display !== 'none') _posicionarDropdown();
+}, true);
+
+window.addEventListener('resize', () => {
+  const dd = document.getElementById('dropdownClientes');
+  if (dd && dd.style.display !== 'none') _posicionarDropdown();
+});
