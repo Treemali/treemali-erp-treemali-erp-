@@ -651,6 +651,35 @@ async function executarCancelamento(vendaId, motivo) {
       return;
     }
 
+    // 5. Cancela crediário vinculado (se existir)
+    const { data: cred } = await window._supabase
+      .from('crediario')
+      .select('id')
+      .eq('venda_id', vendaId)
+      .single();
+
+    if (cred?.id) {
+      // Deleta parcelas pendentes
+      await window._supabase
+        .from('parcelas_crediario')
+        .delete()
+        .eq('crediario_id', cred.id)
+        .eq('status', 'pendente');
+
+      // Deleta parcelas vencidas (ainda não pagas)
+      await window._supabase
+        .from('parcelas_crediario')
+        .delete()
+        .eq('crediario_id', cred.id)
+        .eq('status', 'vencido');
+
+      // Marca crediário como cancelado
+      await window._supabase
+        .from('crediario')
+        .update({ status: 'cancelado', updated_at: new Date().toISOString() })
+        .eq('id', cred.id);
+    }
+
     fecharModal('modalCancelarVenda');
     Toast.success('Venda cancelada!', 'Estoque revertido e removida dos relatórios.');
     carregarHistorico();
