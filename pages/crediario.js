@@ -209,6 +209,7 @@ function toggleBandeiraCred() {
   } else {
     group.classList.add('hidden');
   }
+  atualizarPreviewTaxaCred();
 }
 
 function verParcelas(credId) {
@@ -248,6 +249,10 @@ function abrirPagarParcela(parcId, valor, credId) {
     `Confirmar recebimento da parcela de ${Format.currency(valor)}?`;
   document.getElementById('valorPagoParc').value = valor.toFixed(2);
   document.getElementById('dataPagarParc').value = new Date().toISOString().split('T')[0];
+  // Reseta forma e oculta bandeira ao abrir
+  document.getElementById('formaParc').value = 'dinheiro';
+  toggleBandeiraCred();
+  atualizarPreviewTaxaCred();
   document.getElementById('btnConfirmarPagarParc').onclick = async () => {
     const valorPagoRaw = parseFloat(document.getElementById('valorPagoParc').value);
     const forma   = document.getElementById('formaParc').value;
@@ -491,3 +496,51 @@ const ErrorTranslator = {
 
 document.addEventListener('click', e => { if (e.target.classList.contains('modal-overlay')) fecharModal(e.target.id); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.active').forEach(m => fecharModal(m.id)); });
+
+// ══════════════════════════════════════════════
+// PREVIEW DE TAXA NO MODAL DE PAGAMENTO
+// ══════════════════════════════════════════════
+
+function onChangeFormaPagarCred() {
+  toggleBandeiraCred();
+  atualizarPreviewTaxaCred();
+}
+
+function atualizarPreviewTaxaCred() {
+  const preview  = document.getElementById('previewTaxaPagarCred');
+  if (!preview) return;
+
+  const forma      = document.getElementById('formaParc')?.value || 'dinheiro';
+  const bandeiraId = parseInt(document.getElementById('bandeiraParc')?.value) || null;
+  const parcelas   = parseInt(document.getElementById('parcelasParc')?.value) || 1;
+  const valor      = parseFloat(document.getElementById('valorPagoParc')?.value) || 0;
+
+  if (!['credito','debito'].includes(forma) || !bandeiraId || valor <= 0) {
+    preview.innerHTML = '';
+    return;
+  }
+
+  const tipo = forma === 'debito' ? 'debito' :
+               parcelas === 1    ? 'credito_vista' : 'credito_parcelado';
+
+  const taxa = (_taxasCred || []).find(t =>
+    t.bandeira_id === bandeiraId &&
+    t.tipo === tipo &&
+    (tipo !== 'credito_parcelado' || t.parcelas === parcelas)
+  );
+
+  if (!taxa) {
+    preview.innerHTML = '<span style="color:#888">Taxa não encontrada para esta combinação</span>';
+    return;
+  }
+
+  const valorTaxa = Math.round(valor * taxa.taxa / 100 * 100) / 100;
+  const valorLiq  = Math.round((valor - valorTaxa) * 100) / 100;
+
+  preview.innerHTML = `
+    <span style="color:#666">Taxa ${taxa.taxa}%:</span>
+    <span style="color:#e53e3e;font-weight:600"> − R$ ${valorTaxa.toFixed(2)}</span>
+    <span style="color:#666"> | Líquido: </span>
+    <span style="font-weight:600">R$ ${valorLiq.toFixed(2)}</span>
+  `;
+}
