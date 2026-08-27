@@ -171,9 +171,20 @@
       <div class="form-grid-2">
         <div class="form-group fg-full">
           <label class="form-label">Produto *</label>
-          <select class="form-input" id="saidaProduto" onchange="preencherCustoProduto()">
-            <option value="">Selecione o produto...</option>
-          </select>
+          <input type="text" class="form-input" id="saidaProdutoBusca"
+            placeholder="Digite o nome do produto..."
+            autocomplete="off"
+            oninput="filtrarProdutosSaida(this.value)"
+            onfocus="mostrarDropdownSaida()"
+            onblur="esconderDropdownSaida()" />
+          <input type="hidden" id="saidaProduto" value="" />
+          <div id="obsDropdownSaida" style="
+            font-size:12px;
+            color:#666;
+            margin-top:4px;
+            min-height:16px;
+            font-style:italic;
+          "></div>
         </div>
 
         <div class="form-group">

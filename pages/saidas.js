@@ -90,16 +90,18 @@ async function carregarProdutos() {
     ];
   } else {
     const { data } = await window._supabase
-      .from('produtos').select('id, nome, sku, custo, estoque_atual')
+      .from('produtos').select('id, nome, sku, custo, estoque_atual, descricao')
       .eq('ativo', true).order('nome');
     _produtos = data || [];
   }
 
-  const sel = document.getElementById('saidaProduto');
-  sel.innerHTML = '<option value="">Selecione o produto...</option>' +
-    _produtos.map(p => `<option value="${p.id}" data-custo="${p.custo}" data-estoque="${p.estoque_atual}">
-      ${p.nome}${p.sku ? ' — ' + p.sku : ''} (Estq: ${p.estoque_atual})
-    </option>`).join('');
+  // Salva produtos para o dropdown de busca
+  window._produtosSaida = _produtos;
+  document.getElementById('saidaProduto').value = '';
+  document.getElementById('saidaProdutoBusca').value = '';
+  document.getElementById('obsDropdownSaida').textContent = '';
+  document.getElementById('saidaProdutoBusca').value = '';
+  document.getElementById('obsDropdownSaida').textContent = '';
 }
 
 // ══════════════════════════════════════════════
@@ -216,6 +218,8 @@ function renderSaidas() {
 function abrirNovaSaida() {
   document.getElementById('saidaId').value = '';
   document.getElementById('saidaProduto').value = '';
+  document.getElementById('saidaProdutoBusca').value = '';
+  document.getElementById('obsDropdownSaida').textContent = '';
   document.getElementById('saidaQtd').value = 1;
   document.getElementById('saidaCustoUnit').value = '';
   document.getElementById('saidaCustoTotal').textContent = 'R$ 0,00';
@@ -229,11 +233,13 @@ function abrirNovaSaida() {
   abrirModal('modalSaida');
 }
 
-function preencherCustoProduto() {
-  const sel    = document.getElementById('saidaProduto');
-  const opt    = sel.options[sel.selectedIndex];
-  const custo  = opt?.dataset.custo || '';
-  document.getElementById('saidaCustoUnit').value = custo;
+function preencherCustoProduto(produtoId) {
+  const produto = (window._produtosSaida || []).find(p => p.id === parseInt(produtoId));
+  if (!produto) return;
+  document.getElementById('saidaCustoUnit').value = produto.custo || '';
+  // Mostra obs/descricao do produto
+  const obs = document.getElementById('obsDropdownSaida');
+  if (obs) obs.textContent = produto.descricao ? '📝 ' + produto.descricao : '';
   calcularCustoSaida();
 }
 
@@ -556,3 +562,114 @@ function setBtnLoading(id, l) { const b = document.getElementById(id); if (!b) r
 function setText(id, t) { const el = document.getElementById(id); if (el) el.textContent = t; }
 document.addEventListener('click', e => { if (e.target.classList.contains('modal-overlay')) fecharModal(e.target.id); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.active').forEach(m => fecharModal(m.id)); });
+
+// ══════════════════════════════════════════════
+// BUSCA DE PRODUTO POR NOME (SAÍDAS)
+// ══════════════════════════════════════════════
+
+function _getOuCriarDropdownSaida() {
+  let dd = document.getElementById('dropdownProdutosSaida');
+  if (!dd) {
+    dd = document.createElement('div');
+    dd.id = 'dropdownProdutosSaida';
+    dd.style.cssText = [
+      'display:none',
+      'position:fixed',
+      'background:#fff',
+      'border:1px solid #ddd',
+      'border-radius:8px',
+      'box-shadow:0 6px 20px rgba(0,0,0,0.15)',
+      'max-height:260px',
+      'overflow-y:auto',
+      'z-index:99999',
+      'min-width:260px',
+    ].join(';');
+    document.body.appendChild(dd);
+  }
+  return dd;
+}
+
+function _posicionarDropdownSaida() {
+  const input = document.getElementById('saidaProdutoBusca');
+  const dd = _getOuCriarDropdownSaida();
+  const rect = input.getBoundingClientRect();
+  dd.style.top  = (rect.bottom + 4) + 'px';
+  dd.style.left = rect.left + 'px';
+  dd.style.width = rect.width + 'px';
+}
+
+function filtrarProdutosSaida(termo) {
+  const dd = _getOuCriarDropdownSaida();
+  const hiddenInput = document.getElementById('saidaProduto');
+  const produtos = window._produtosSaida || [];
+
+  if (!termo.trim()) {
+    hiddenInput.value = '';
+    dd.style.display = 'none';
+    document.getElementById('obsDropdownSaida').textContent = '';
+    return;
+  }
+
+  const termoLower = termo.toLowerCase().trim();
+  const filtrados = produtos.filter(p =>
+    p.nome.toLowerCase().includes(termoLower) ||
+    (p.sku && p.sku.toLowerCase().includes(termoLower))
+  );
+
+  _posicionarDropdownSaida();
+
+  if (!filtrados.length) {
+    dd.innerHTML = '<div style="padding:10px 14px;color:#888;font-size:14px;">Nenhum produto encontrado</div>';
+    dd.style.display = 'block';
+    return;
+  }
+
+  dd.innerHTML = filtrados.map(p => {
+    const nomeEsc = p.nome.replace(/'/g, "\\'");
+    const skuInfo = p.sku ? ` — ${p.sku}` : '';
+    const estInfo = ` (Estq: ${p.estoque_atual})`;
+    return `<div onmousedown="selecionarProdutoSaida(${p.id}, '${nomeEsc}')"
+      style="padding:10px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid #f0f0f0;"
+      onmouseover="this.style.background='#f5f5f5'"
+      onmouseout="this.style.background=''">
+      <div style="font-weight:500">${p.nome}${skuInfo}</div>
+      <div style="font-size:12px;color:#888">${estInfo}</div>
+      ${p.descricao ? `<div style="font-size:12px;color:#666;font-style:italic">📝 ${p.descricao}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  dd.style.display = 'block';
+}
+
+function selecionarProdutoSaida(id, nome) {
+  document.getElementById('saidaProduto').value = id;
+  document.getElementById('saidaProdutoBusca').value = nome;
+  const dd = document.getElementById('dropdownProdutosSaida');
+  if (dd) dd.style.display = 'none';
+  preencherCustoProduto(id);
+}
+
+function mostrarDropdownSaida() {
+  const termo = document.getElementById('saidaProdutoBusca').value;
+  if (termo.trim()) {
+    _posicionarDropdownSaida();
+    filtrarProdutosSaida(termo);
+  }
+}
+
+function esconderDropdownSaida() {
+  setTimeout(() => {
+    const dd = document.getElementById('dropdownProdutosSaida');
+    if (dd) dd.style.display = 'none';
+  }, 180);
+}
+
+window.addEventListener('scroll', () => {
+  const dd = document.getElementById('dropdownProdutosSaida');
+  if (dd && dd.style.display !== 'none') _posicionarDropdownSaida();
+}, true);
+
+window.addEventListener('resize', () => {
+  const dd = document.getElementById('dropdownProdutosSaida');
+  if (dd && dd.style.display !== 'none') _posicionarDropdownSaida();
+});
