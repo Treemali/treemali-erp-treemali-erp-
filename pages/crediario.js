@@ -205,9 +205,9 @@ function toggleBandeiraCred() {
   const forma = document.getElementById('formaParc').value;
   const group = document.getElementById('rowBandeiraPagarCred');
   if (['credito','debito'].includes(forma)) {
-    group.classList.remove('hidden');
+    group.style.display = 'block';
   } else {
-    group.classList.add('hidden');
+    group.style.display = 'none';
   }
   atualizarPreviewTaxaCred();
 }
