@@ -106,8 +106,11 @@ function abrirNovoCliente() {
   document.getElementById('clienteCpf').value = '';
   document.getElementById('clienteTelefone').value = '';
   document.getElementById('clienteEmail').value = '';
+  document.getElementById('clienteCep').value = '';
   document.getElementById('clienteEndereco').value = '';
+  document.getElementById('clienteBairro').value = '';
   document.getElementById('clienteCidade').value = '';
+  document.getElementById('clienteEstado').value = '';
   document.getElementById('clienteNascimento').value = '';
   document.getElementById('clienteAtivo').value = 'true';
   document.getElementById('tituloModalCliente').textContent = 'Novo Cliente';
@@ -123,8 +126,11 @@ function editarCliente(id) {
   document.getElementById('clienteCpf').value = c.cpf || '';
   document.getElementById('clienteTelefone').value = c.telefone || '';
   document.getElementById('clienteEmail').value = c.email || '';
+  document.getElementById('clienteCep').value = c.cep || '';
   document.getElementById('clienteEndereco').value = c.endereco || '';
+  document.getElementById('clienteBairro').value = c.bairro || '';
   document.getElementById('clienteCidade').value = c.cidade || '';
+  document.getElementById('clienteEstado').value = c.estado || '';
   document.getElementById('clienteNascimento').value = c.data_nascimento || '';
   document.getElementById('clienteAtivo').value = String(c.ativo);
   document.getElementById('tituloModalCliente').textContent = 'Editar Cliente';
@@ -142,8 +148,11 @@ async function salvarCliente() {
     cpf:              document.getElementById('clienteCpf').value.trim() || null,
     telefone:         document.getElementById('clienteTelefone').value.trim() || null,
     email:            document.getElementById('clienteEmail').value.trim() || null,
+    cep:              document.getElementById('clienteCep').value.trim() || null,
     endereco:         document.getElementById('clienteEndereco').value.trim() || null,
+    bairro:           document.getElementById('clienteBairro').value.trim() || null,
     cidade:           document.getElementById('clienteCidade').value.trim() || null,
+    estado:           document.getElementById('clienteEstado').value.trim().toUpperCase() || null,
     data_nascimento:  document.getElementById('clienteNascimento').value || null,
     ativo:            document.getElementById('clienteAtivo').value === 'true',
   };
@@ -562,4 +571,45 @@ function formatName(str) {
     })
     .join(' ')
     .replace(/^([a-z])/, (match) => match.toUpperCase());
+}
+
+// ══════════════════════════════════════════════
+// BUSCA DE CEP (ViaCEP)
+// ══════════════════════════════════════════════
+
+function mascaraCep(input) {
+  let v = input.value.replace(/\D/g, '').slice(0, 8);
+  if (v.length > 5) v = v.slice(0, 5) + '-' + v.slice(5);
+  input.value = v;
+}
+
+async function buscarCep(cep) {
+  const numeros = cep.replace(/\D/g, '');
+  if (numeros.length !== 8) return;
+
+  const loading = document.getElementById('cepLoading');
+  if (loading) loading.style.display = 'inline';
+
+  try {
+    const res = await fetch(`https://viacep.com.br/ws/${numeros}/json/`);
+    const data = await res.json();
+
+    if (data.erro) {
+      Toast.error('CEP não encontrado', 'Verifique o CEP digitado.');
+      return;
+    }
+
+    document.getElementById('clienteEndereco').value = data.logradouro || '';
+    document.getElementById('clienteBairro').value   = data.bairro     || '';
+    document.getElementById('clienteCidade').value   = data.localidade  || '';
+    document.getElementById('clienteEstado').value   = data.uf          || '';
+
+    // Foca no campo rua para completar número
+    document.getElementById('clienteEndereco').focus();
+
+  } catch (err) {
+    Toast.error('Erro ao buscar CEP', 'Verifique sua conexão.');
+  } finally {
+    if (loading) loading.style.display = 'none';
+  }
 }
