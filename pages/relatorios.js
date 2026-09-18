@@ -465,18 +465,14 @@ function imprimirRelatorioEstoque() {
   win.document.write(`
     <html><head><title>Relatório de Estoque</title>
     <style>
-      @media print { @page { margin: 8mm 6mm; size: A4 landscape; } }
-      body { font-family: Arial, sans-serif; font-size: 8px; padding: 10px; margin: 0; }
-      h1 { font-size: 12px; margin: 0 0 6px 0; }
-      .kpis { margin-bottom: 6px; }
-      .rkpi { display: inline-block; margin-right: 10px; padding: 4px 8px; background: #f9f9f9; border-radius: 4px; font-size: 8px; }
-      table { width: 100%; border-collapse: collapse; margin-top: 6px; }
-      th { background: #f0f0f0; padding: 3px 5px; border: 1px solid #ccc; text-align: left; font-size: 8px; white-space: nowrap; }
-      td { padding: 2px 5px; border: 1px solid #ddd; font-size: 8px; white-space: nowrap; }
-      tr:nth-child(even) { background: #fafafa; }
+      body { font-family: sans-serif; font-size: 12px; padding: 20px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+      th { background: #f4f4f4; padding: 10px; border: 1px solid #ddd; text-align: left; }
+      td { padding: 8px; border: 1px solid #ddd; }
+      .rkpi { display: inline-block; margin-right: 20px; padding: 10px; background: #f9f9f9; border-radius: 5px; }
     </style>
     </head><body>
-    <h1>Relatório de Estoque — Treemali</h1>
+    <h1>Relatório de Estoque</h1>
     <div class="kpis">${kpis}</div>
     <table><thead>${thead}</thead><tbody>${tbody}</tbody></table>
     <script>window.print();<\/script>
