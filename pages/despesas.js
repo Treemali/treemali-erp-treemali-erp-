@@ -53,8 +53,10 @@ async function carregarDespesas() {
   let q = window._supabase.from('despesas').select('*').order('created_at', { ascending: false });
   if (status) q = q.eq('status', status);
   if (mes) {
-    // Usa created_at para filtrar o mês — mais confiável que vencimento que pode ser nulo
-    q = q.gte('created_at', mes+'-01T00:00:00').lte('created_at', mes+'-31T23:59:59');
+    // Calcula o último dia real do mês para o filtro
+    const [anoFiltro, mesFiltro] = mes.split('-').map(Number);
+    const ultimoDia = new Date(anoFiltro, mesFiltro, 0).getDate();
+    q = q.gte('created_at', mes+'-01T00:00:00').lte('created_at', mes+'-'+String(ultimoDia).padStart(2,'0')+'T23:59:59');
   }
 
   const { data } = await q;
