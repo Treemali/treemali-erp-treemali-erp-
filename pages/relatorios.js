@@ -456,116 +456,43 @@ async function gerarRelEstoque() {
     : `<tr><td colspan="${cfg.colspan}" class="rel-loading">Nenhum produto encontrado</td></tr>`;
 }
 
-async function imprimirRelatorioEstoque() {
-  // Busca dados frescos direto do banco para garantir HTML limpo
-  let produtos = [];
-  if (!window._supabase) {
-    produtos = [
-      { nome:'Camiseta Preta P', sku:'CAM-001', descricao:'100% algodão', estoque_atual:15, estoque_minimo:5, custo:30, preco_venda:79.90, preco_avista:69.90 },
-    ];
-  } else {
-    const { data } = await window._supabase
-      .from('produtos').select('*, categorias(nome)').eq('ativo', true).order('nome');
-    produtos = data || [];
-  }
+function imprimirRelatorioEstoque() {
+  const thead = document.getElementById('theadRelEstoque')?.innerHTML || '';
+  const tbody = document.getElementById('relEstoqueTabela')?.innerHTML || '';
+  const kpis  = document.getElementById('relEstoqueKpis')?.innerHTML || '';
 
-  const filtro = document.getElementById('filtroRelEstoque')?.value || '';
-  const layout = document.getElementById('layoutRelEstoque')?.value || 'gerencial';
-  let lista = produtos;
-  if (filtro === 'baixo') lista = lista.filter(p => p.estoque_atual > 0 && p.estoque_atual <= p.estoque_minimo);
-  if (filtro === 'zero')  lista = lista.filter(p => p.estoque_atual === 0);
-
-  const totalItens = lista.reduce((s,p) => s + Math.max(0, p.estoque_atual), 0);
-  const valorTotal = lista.reduce((s,p) => s + (p.custo * Math.max(0, p.estoque_atual)), 0);
-  const baixo      = lista.filter(p => p.estoque_atual > 0 && p.estoque_atual <= p.estoque_minimo).length;
-  const zerado     = lista.filter(p => p.estoque_atual <= 0).length;
-
-  const fmt = (v) => 'R$ ' + Number(v).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-
-  // Cabeçalho e linhas conforme layout
-  let theadHtml = '';
-  let rowsFn;
-
-  if (layout === 'gerencial') {
-    theadHtml = '<tr><th>Produto</th><th>Descrição</th><th>Situação</th><th style="text-align:center">Estoque</th></tr>';
-    rowsFn = (p) => {
-      const z = p.estoque_atual <= 0;
-      const b = p.estoque_atual > 0 && p.estoque_atual <= p.estoque_minimo;
-      const sit = z ? 'Zerado' : b ? 'Baixo' : 'Normal';
-      const cor = z ? '#c0392b' : b ? '#e67e22' : '#27ae60';
-      return `<tr>
-        <td>${p.nome || ''}</td>
-        <td>${p.descricao || ''}</td>
-        <td style="color:${cor};font-weight:600">${sit}</td>
-        <td style="text-align:center;color:${cor};font-weight:600">${p.estoque_atual}</td>
-      </tr>`;
-    };
-  } else if (layout === 'padrao') {
-    theadHtml = '<tr><th>Produto</th><th>SKU</th><th>Categoria</th><th style="text-align:center">Estoque</th><th style="text-align:center">Mínimo</th><th style="text-align:right">Custo</th><th style="text-align:right">À Vista</th><th style="text-align:right">Venda</th><th style="text-align:right">Valor Total</th></tr>';
-    rowsFn = (p) => {
-      const z = p.estoque_atual <= 0;
-      const b = p.estoque_atual > 0 && p.estoque_atual <= p.estoque_minimo;
-      const cor = z ? '#c0392b' : b ? '#e67e22' : '#27ae60';
-      return `<tr>
-        <td>${p.nome || ''}</td>
-        <td>${p.sku || ''}</td>
-        <td>${p.categorias?.nome || ''}</td>
-        <td style="text-align:center;color:${cor};font-weight:600">${p.estoque_atual}</td>
-        <td style="text-align:center">${p.estoque_minimo || 0}</td>
-        <td style="text-align:right">${fmt(p.custo || 0)}</td>
-        <td style="text-align:right">${fmt(p.preco_avista || 0)}</td>
-        <td style="text-align:right">${fmt(p.preco_venda || 0)}</td>
-        <td style="text-align:right">${fmt((p.custo || 0) * Math.max(0, p.estoque_atual))}</td>
-      </tr>`;
-    };
-  } else {
-    theadHtml = '<tr><th>Produto</th><th>SKU</th><th style="text-align:center">Estoque</th><th style="text-align:right">Custo Unit.</th><th style="text-align:right">Valor Total</th></tr>';
-    rowsFn = (p) => {
-      const z = p.estoque_atual <= 0;
-      const b = p.estoque_atual > 0 && p.estoque_atual <= p.estoque_minimo;
-      const cor = z ? '#c0392b' : b ? '#e67e22' : '#27ae60';
-      return `<tr>
-        <td>${p.nome || ''}</td>
-        <td>${p.sku || ''}</td>
-        <td style="text-align:center;color:${cor};font-weight:600">${p.estoque_atual}</td>
-        <td style="text-align:right">${fmt(p.custo || 0)}</td>
-        <td style="text-align:right">${fmt((p.custo || 0) * Math.max(0, p.estoque_atual))}</td>
-      </tr>`;
-    };
-  }
-
-  const tbodyHtml = lista.map(rowsFn).join('');
-  const data = new Date().toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  // Remove estilos inline do tbody antes de imprimir
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = tbody;
+  tempDiv.querySelectorAll('[style]').forEach(el => el.removeAttribute('style'));
+  tempDiv.querySelectorAll('span').forEach(el => {
+    el.outerHTML = el.textContent;
+  });
+  const tbodyLimpo = tempDiv.innerHTML;
 
   const win = window.open('', '_blank');
-  win.document.write(`<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Relatório de Estoque</title>
-<style>
-  @media print { @page { margin: 10mm 8mm; size: A4 landscape; } }
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; font-size: 9pt; }
-  body { padding: 12px; }
-  h1 { font-size: 13pt; margin-bottom: 4px; }
-  .sub { font-size: 8pt; color: #666; margin-bottom: 8px; }
-  .kpis { display: flex; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
-  .kpi { background: #f5f5f5; border-radius: 4px; padding: 5px 10px; font-size: 8pt; }
-  .kpi strong { display: block; font-size: 10pt; }
-  table { width: 100%; border-collapse: collapse; }
-  th { background: #333; color: #fff; padding: 4px 6px; text-align: left; font-size: 8pt; }
-  td { padding: 3px 6px; border-bottom: 1px solid #e0e0e0; font-size: 8pt; }
-  tr:nth-child(even) td { background: #f9f9f9; }
-</style>
-</head><body>
-<h1>Relatório de Estoque — Treemali</h1>
-<div class="sub">Gerado em ${data} · ${lista.length} produtos</div>
-<div class="kpis">
-  <div class="kpi"><strong>${totalItens}</strong>Total em Estoque</div>
-  <div class="kpi"><strong>${fmt(valorTotal)}</strong>Valor em Estoque</div>
-  <div class="kpi"><strong style="color:#e67e22">${baixo}</strong>Estoque Baixo</div>
-  <div class="kpi"><strong style="color:#c0392b">${zerado}</strong>Zerados</div>
-</div>
-<table><thead>${theadHtml}</thead><tbody>${tbodyHtml}</tbody></table>
-<script>window.print();<\/script>
-</body></html>`);
+  win.document.write(`
+    <html><head><title>Relatório de Estoque</title>
+    <style>
+      @media print { @page { size: A4 landscape; margin: 8mm; } }
+      * { font-family: Arial, sans-serif !important; font-size: 8pt !important; box-sizing: border-box; }
+      body { padding: 10px; margin: 0; }
+      h1 { font-size: 11pt !important; margin: 0 0 6px 0; }
+      .kpis { margin-bottom: 8px; }
+      .rkpi { display: inline-block; margin-right: 12px; padding: 3px 8px; background: #f5f5f5; border-radius: 4px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+      th { background: #444; color: #fff; padding: 3px 5px !important; border: 1px solid #333; text-align: left; font-weight: bold; }
+      td { padding: 2px 5px !important; border: 1px solid #ddd; }
+      tr:nth-child(even) td { background: #f9f9f9; }
+      strong { font-weight: bold; }
+    </style>
+    </head><body>
+    <h1>Relatório de Estoque</h1>
+    <div class="kpis">${kpis}</div>
+    <table><thead>${thead}</thead><tbody>${tbodyLimpo}</tbody></table>
+    <script>window.print();<\/script>
+    </body></html>
+  `);
   win.document.close();
 }
 
