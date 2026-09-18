@@ -461,35 +461,25 @@ function imprimirRelatorioEstoque() {
   const tbody = document.getElementById('relEstoqueTabela')?.innerHTML || '';
   const kpis  = document.getElementById('relEstoqueKpis')?.innerHTML || '';
 
-  // Remove estilos inline do tbody antes de imprimir
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = tbody;
-  tempDiv.querySelectorAll('[style]').forEach(el => el.removeAttribute('style'));
-  tempDiv.querySelectorAll('span').forEach(el => {
-    el.outerHTML = el.textContent;
-  });
-  const tbodyLimpo = tempDiv.innerHTML;
-
   const win = window.open('', '_blank');
   win.document.write(`
     <html><head><title>Relatório de Estoque</title>
     <style>
       @media print { @page { size: A4 landscape; margin: 8mm; } }
-      * { font-family: Arial, sans-serif !important; font-size: 8pt !important; box-sizing: border-box; }
-      body { padding: 10px; margin: 0; }
-      h1 { font-size: 11pt !important; margin: 0 0 6px 0; }
+      body { font-family: Arial, sans-serif; font-size: 8pt; padding: 10px; margin: 0; }
+      h1 { font-size: 11pt; margin: 0 0 4px 0; }
       .kpis { margin-bottom: 8px; }
-      .rkpi { display: inline-block; margin-right: 12px; padding: 3px 8px; background: #f5f5f5; border-radius: 4px; }
+      .rkpi { display: inline-block; margin-right: 12px; padding: 3px 8px; background: #f5f5f5; border-radius: 4px; font-size: 8pt; }
       table { width: 100%; border-collapse: collapse; margin-top: 6px; }
-      th { background: #444; color: #fff; padding: 3px 5px !important; border: 1px solid #333; text-align: left; font-weight: bold; }
-      td { padding: 2px 5px !important; border: 1px solid #ddd; }
+      th { background: #444; color: #fff; padding: 3px 6px; border: 1px solid #333; text-align: left; font-size: 8pt; font-weight: bold; }
+      td { padding: 2px 6px; border: 1px solid #ddd; font-size: 8pt; }
+      td * { font-size: 8pt !important; font-family: Arial, sans-serif !important; }
       tr:nth-child(even) td { background: #f9f9f9; }
-      strong { font-weight: bold; }
     </style>
     </head><body>
     <h1>Relatório de Estoque</h1>
     <div class="kpis">${kpis}</div>
-    <table><thead>${thead}</thead><tbody>${tbodyLimpo}</tbody></table>
+    <table><thead>${thead}</thead><tbody>${tbody}</tbody></table>
     <script>window.print();<\/script>
     </body></html>
   `);
