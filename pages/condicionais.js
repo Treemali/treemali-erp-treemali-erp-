@@ -843,22 +843,36 @@ function cancelarCondicional(condId) {
     try {
       const itens = (c.itens_condicional || []).filter(i => i.status === 'pendente');
 
+      // 1. Marca todos os itens como devolvidos
       for (const i of itens) {
         await window._supabase.from('itens_condicional')
           .update({ status: 'devolvido', quantidade_atual: 0 }).eq('id', i.id);
+      }
+
+      // 2. Agrupa por produto para evitar retornos duplicados no estoque
+      const porProduto = {};
+      for (const i of itens) {
+        if (i.quantidade_atual <= 0) continue;
+        if (!porProduto[i.produto_id]) porProduto[i.produto_id] = 0;
+        porProduto[i.produto_id] += i.quantidade_atual;
+      }
+
+      // 3. Atualiza estoque e registra movimentação uma vez por produto
+      for (const [produtoId, qtd] of Object.entries(porProduto)) {
+        if (qtd <= 0) continue;
 
         const { data: prod } = await window._supabase
-          .from('produtos').select('estoque_atual').eq('id', i.produto_id).single();
+          .from('produtos').select('estoque_atual').eq('id', produtoId).single();
         if (prod) {
           await window._supabase.from('produtos')
-            .update({ estoque_atual: prod.estoque_atual + i.quantidade_atual, updated_at: new Date().toISOString() })
-            .eq('id', i.produto_id);
+            .update({ estoque_atual: prod.estoque_atual + qtd, updated_at: new Date().toISOString() })
+            .eq('id', produtoId);
         }
 
         await window._supabase.from('movimentacoes_estoque').insert({
-          produto_id:  i.produto_id,
+          produto_id:  parseInt(produtoId),
           tipo:        'retorno_condicional',
-          quantidade:  i.quantidade_atual,
+          quantidade:  qtd,
           referencia:  `Cancelamento condicional #${condId}`,
           usuario_id:  user?.id || null,
         });
