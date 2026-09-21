@@ -559,10 +559,18 @@ async function removerItemCondicional(itemId, condId) {
       // Devolve estoque
       const { data: prod } = await window._supabase
         .from('produtos').select('estoque_atual').eq('id', item.produto_id).single();
-      if (prod) {
+      if (prod && item.quantidade_atual > 0) {
         await window._supabase.from('produtos')
           .update({ estoque_atual: prod.estoque_atual + item.quantidade_atual, updated_at: new Date().toISOString() })
           .eq('id', item.produto_id);
+        // Registra movimentação
+        await window._supabase.from('movimentacoes_estoque').insert({
+          produto_id: item.produto_id,
+          tipo:       'retorno_condicional',
+          quantidade: item.quantidade_atual,
+          referencia: `Remoção de item do condicional #${condId}`,
+          usuario_id: typeof Auth !== 'undefined' ? Auth.getUser()?.id || null : null,
+        });
       }
       // Remove o item
       await window._supabase.from('itens_condicional').delete().eq('id', itemId);
