@@ -320,6 +320,7 @@ function abrirModalCondicional(id) {
             <option value="pix">⚡ PIX</option>
             <option value="debito">💳 Débito</option>
             <option value="credito">💳 Crédito</option>
+            <option value="crediario">📋 Crediário</option>
           </select>
         </div>
         <div id="rowParcelasCond" style="display:none">
@@ -481,11 +482,12 @@ async function carregarBandeirasCondicional() {
 function onChangeFormaPagCond() {
   const forma    = document.getElementById('formaPagCond')?.value || 'dinheiro';
   const isCartao = ['credito','debito'].includes(forma);
+  const isCrediario = forma === 'crediario';
 
   const rowParcelas = document.getElementById('rowParcelasCond');
   const rowBandeira = document.getElementById('rowBandeiraCond');
 
-  if (rowParcelas) rowParcelas.style.display = forma === 'credito' ? 'block' : 'none';
+  if (rowParcelas) rowParcelas.style.display = ['credito', 'crediario'].includes(forma) ? 'block' : 'none';
   if (rowBandeira) rowBandeira.style.display = isCartao ? 'block' : 'none';
 
   // Preenche bandeiras
@@ -770,6 +772,38 @@ async function confirmarRetornoVenda(condId) {
 
     if (errRpc) throw errRpc;
 
+    // Se forma de pagamento é crediário, cria o crediário vinculado à venda
+    if (forma === 'crediario' && resultado?.venda_id && vendidos.length > 0) {
+      const numParcelas = parcelas || 1;
+      const valorParcela = parseFloat((totalVenda / numParcelas).toFixed(2));
+      const { data: cred, error: errCred } = await window._supabase
+        .from('crediario')
+        .insert({
+          venda_id:   resultado.venda_id,
+          cliente_id: c.cliente_id,
+          valor_total: totalVenda,
+          parcelas:   numParcelas,
+          status:     'ativo',
+        })
+        .select('id').single();
+
+      if (!errCred && cred?.id) {
+        const hoje = new Date();
+        const parcelasArr = Array.from({ length: numParcelas }, (_, i) => {
+          const venc = new Date(hoje);
+          venc.setMonth(venc.getMonth() + i + 1);
+          return {
+            crediario_id: cred.id,
+            numero:       i + 1,
+            valor:        valorParcela,
+            vencimento:   venc.toISOString().split('T')[0],
+            status:       'pendente',
+          };
+        });
+        await window._supabase.from('parcelas_crediario').insert(parcelasArr);
+      }
+    }
+
     fecharModal('modalCondicional');
     Toast.success('Condicional processada!',
       `${vendidos.length} item(s) vendido(s)${devolvidos.length ? `, ${devolvidos.length} devolvido(s)` : ''}.`
@@ -809,35 +843,22 @@ function cancelarCondicional(condId) {
     try {
       const itens = (c.itens_condicional || []).filter(i => i.status === 'pendente');
 
-      // 1. Marca todos os itens como devolvidos
       for (const i of itens) {
         await window._supabase.from('itens_condicional')
           .update({ status: 'devolvido', quantidade_atual: 0 }).eq('id', i.id);
-      }
-
-      // 2. Agrupa por produto para evitar retornos duplicados no estoque
-      const porProduto = {};
-      for (const i of itens) {
-        if (!porProduto[i.produto_id]) porProduto[i.produto_id] = 0;
-        porProduto[i.produto_id] += i.quantidade_atual;
-      }
-
-      // 3. Atualiza estoque e registra movimentação uma vez por produto
-      for (const [produtoId, qtd] of Object.entries(porProduto)) {
-        if (qtd <= 0) continue;
 
         const { data: prod } = await window._supabase
-          .from('produtos').select('estoque_atual').eq('id', produtoId).single();
+          .from('produtos').select('estoque_atual').eq('id', i.produto_id).single();
         if (prod) {
           await window._supabase.from('produtos')
-            .update({ estoque_atual: prod.estoque_atual + qtd, updated_at: new Date().toISOString() })
-            .eq('id', produtoId);
+            .update({ estoque_atual: prod.estoque_atual + i.quantidade_atual, updated_at: new Date().toISOString() })
+            .eq('id', i.produto_id);
         }
 
         await window._supabase.from('movimentacoes_estoque').insert({
-          produto_id:  parseInt(produtoId),
+          produto_id:  i.produto_id,
           tipo:        'retorno_condicional',
-          quantidade:  qtd,
+          quantidade:  i.quantidade_atual,
           referencia:  `Cancelamento condicional #${condId}`,
           usuario_id:  user?.id || null,
         });
