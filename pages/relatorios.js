@@ -618,29 +618,53 @@ async function gerarExtratoCliente() {
   btnImprimir.style.display = 'none';
 
   try {
+    // Pega período e status selecionados
+    const { inicio, fim } = getPeriodoDatas();
+    const statusFiltro = document.getElementById('statusFiltroExtrato')?.value || 'todos';
+
     // Busca dados do cliente
     const { data: cliente } = await window._supabase
       .from('clientes')
       .select('id, nome, telefone, email, cidade, estado, data_nascimento')
       .eq('id', clienteId).single();
 
-    // Busca todas as vendas do cliente com itens
+    // Busca vendas do cliente NO PERÍODO
     const { data: vendas } = await window._supabase
       .from('vendas')
       .select('id, created_at, tipo, forma_pagamento, valor_total, status, itens_venda(quantidade, preco_vend, produtos(nome, descricao))')
       .eq('cliente_id', clienteId)
       .neq('status', 'cancelada')
+      .gte('created_at', inicio)
+      .lte('created_at', fim)
       .order('created_at', { ascending: true });
 
-    // Busca crediários e parcelas
+    // Busca crediários do período
     const { data: crediariosRaw } = await window._supabase
       .from('crediario')
-      .select('id, valor_total, parcelas, status, created_at, venda_id, parcelas_crediario(id, numero, valor, status, vencimento, data_pag, forma_pagamento)')
+      .select('id, valor_total, parcelas, status, created_at, venda_id, parcelas_crediario(id, numero, valor, status, vencimento, data_pag, forma_pagamento, parcelas)')
       .eq('cliente_id', clienteId)
       .order('created_at', { ascending: true });
 
-    const crediarios = crediariosRaw || [];
-    const vendasLista = vendas || [];
+    let crediarios = crediariosRaw || [];
+    let vendasLista = vendas || [];
+
+    // Aplica filtro de status
+    if (statusFiltro === 'aberto') {
+      // Só vendas que têm crediário com parcelas pendentes/vencidas
+      crediarios = crediarios.filter(c =>
+        (c.parcelas_crediario || []).some(p => ['pendente','vencido'].includes(p.status))
+      );
+      const idsComAberto = new Set(crediarios.map(c => c.venda_id));
+      vendasLista = vendasLista.filter(v => idsComAberto.has(v.id) || v.forma_pagamento !== 'crediario');
+    } else if (statusFiltro === 'quitado') {
+      // Só crediários totalmente pagos
+      crediarios = crediarios.filter(c =>
+        c.status === 'quitado' ||
+        (c.parcelas_crediario || []).every(p => p.status === 'pago')
+      );
+      const idsQuitados = new Set(crediarios.map(c => c.venda_id));
+      vendasLista = vendasLista.filter(v => idsQuitados.has(v.id) || v.forma_pagamento !== 'crediario');
+    }
 
     // Totais gerais
     const totalCompras = vendasLista.reduce((s, v) => s + (v.valor_total || 0), 0);

@@ -239,6 +239,11 @@
                   style="width:100%" />
                 <input type="hidden" id="clienteIdRel" value="" />
               </div>
+              <select class="form-input" id="statusFiltroExtrato" style="width:auto;min-width:140px">
+                <option value="todos">Todas</option>
+                <option value="aberto">Em aberto</option>
+                <option value="quitado">Quitadas</option>
+              </select>
               <button class="btn btn-primary btn-sm" onclick="gerarExtratoCliente()">Gerar Extrato</button>
               <button class="btn btn-ghost btn-sm" id="btnImprimirExtrato" onclick="imprimirExtratoCliente()" style="display:none">🖨️ Imprimir</button>
             </div>
