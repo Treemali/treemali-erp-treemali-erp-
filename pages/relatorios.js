@@ -19,7 +19,11 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-      gerarRelatorios();
+      if (btn.dataset.tab === 'cliente') {
+        if (_clientesRel.length === 0) carregarClientesRel();
+      } else {
+        gerarRelatorios();
+      }
     });
   });
 
@@ -456,116 +460,28 @@ async function gerarRelEstoque() {
     : `<tr><td colspan="${cfg.colspan}" class="rel-loading">Nenhum produto encontrado</td></tr>`;
 }
 
-async function imprimirRelatorioEstoque() {
-  // Busca dados frescos direto do banco para garantir HTML limpo
-  let produtos = [];
-  if (!window._supabase) {
-    produtos = [
-      { nome:'Camiseta Preta P', sku:'CAM-001', descricao:'100% algodão', estoque_atual:15, estoque_minimo:5, custo:30, preco_venda:79.90, preco_avista:69.90 },
-    ];
-  } else {
-    const { data } = await window._supabase
-      .from('produtos').select('*, categorias(nome)').eq('ativo', true).order('nome');
-    produtos = data || [];
-  }
-
-  const filtro = document.getElementById('filtroRelEstoque')?.value || '';
-  const layout = document.getElementById('layoutRelEstoque')?.value || 'gerencial';
-  let lista = produtos;
-  if (filtro === 'baixo') lista = lista.filter(p => p.estoque_atual > 0 && p.estoque_atual <= p.estoque_minimo);
-  if (filtro === 'zero')  lista = lista.filter(p => p.estoque_atual === 0);
-
-  const totalItens = lista.reduce((s,p) => s + Math.max(0, p.estoque_atual), 0);
-  const valorTotal = lista.reduce((s,p) => s + (p.custo * Math.max(0, p.estoque_atual)), 0);
-  const baixo      = lista.filter(p => p.estoque_atual > 0 && p.estoque_atual <= p.estoque_minimo).length;
-  const zerado     = lista.filter(p => p.estoque_atual <= 0).length;
-
-  const fmt = (v) => 'R$ ' + Number(v).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-
-  // Cabeçalho e linhas conforme layout
-  let theadHtml = '';
-  let rowsFn;
-
-  if (layout === 'gerencial') {
-    theadHtml = '<tr><th>Produto</th><th>Descrição</th><th>Situação</th><th style="text-align:center">Estoque</th></tr>';
-    rowsFn = (p) => {
-      const z = p.estoque_atual <= 0;
-      const b = p.estoque_atual > 0 && p.estoque_atual <= p.estoque_minimo;
-      const sit = z ? 'Zerado' : b ? 'Baixo' : 'Normal';
-      const cor = z ? '#c0392b' : b ? '#e67e22' : '#27ae60';
-      return `<tr>
-        <td>${p.nome || ''}</td>
-        <td>${p.descricao || ''}</td>
-        <td style="color:${cor};font-weight:600">${sit}</td>
-        <td style="text-align:center;color:${cor};font-weight:600">${p.estoque_atual}</td>
-      </tr>`;
-    };
-  } else if (layout === 'padrao') {
-    theadHtml = '<tr><th>Produto</th><th>SKU</th><th>Categoria</th><th style="text-align:center">Estoque</th><th style="text-align:center">Mínimo</th><th style="text-align:right">Custo</th><th style="text-align:right">À Vista</th><th style="text-align:right">Venda</th><th style="text-align:right">Valor Total</th></tr>';
-    rowsFn = (p) => {
-      const z = p.estoque_atual <= 0;
-      const b = p.estoque_atual > 0 && p.estoque_atual <= p.estoque_minimo;
-      const cor = z ? '#c0392b' : b ? '#e67e22' : '#27ae60';
-      return `<tr>
-        <td>${p.nome || ''}</td>
-        <td>${p.sku || ''}</td>
-        <td>${p.categorias?.nome || ''}</td>
-        <td style="text-align:center;color:${cor};font-weight:600">${p.estoque_atual}</td>
-        <td style="text-align:center">${p.estoque_minimo || 0}</td>
-        <td style="text-align:right">${fmt(p.custo || 0)}</td>
-        <td style="text-align:right">${fmt(p.preco_avista || 0)}</td>
-        <td style="text-align:right">${fmt(p.preco_venda || 0)}</td>
-        <td style="text-align:right">${fmt((p.custo || 0) * Math.max(0, p.estoque_atual))}</td>
-      </tr>`;
-    };
-  } else {
-    theadHtml = '<tr><th>Produto</th><th>SKU</th><th style="text-align:center">Estoque</th><th style="text-align:right">Custo Unit.</th><th style="text-align:right">Valor Total</th></tr>';
-    rowsFn = (p) => {
-      const z = p.estoque_atual <= 0;
-      const b = p.estoque_atual > 0 && p.estoque_atual <= p.estoque_minimo;
-      const cor = z ? '#c0392b' : b ? '#e67e22' : '#27ae60';
-      return `<tr>
-        <td>${p.nome || ''}</td>
-        <td>${p.sku || ''}</td>
-        <td style="text-align:center;color:${cor};font-weight:600">${p.estoque_atual}</td>
-        <td style="text-align:right">${fmt(p.custo || 0)}</td>
-        <td style="text-align:right">${fmt((p.custo || 0) * Math.max(0, p.estoque_atual))}</td>
-      </tr>`;
-    };
-  }
-
-  const tbodyHtml = lista.map(rowsFn).join('');
-  const data = new Date().toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+function imprimirRelatorioEstoque() {
+  const thead = document.getElementById('theadRelEstoque')?.innerHTML || '';
+  const tbody = document.getElementById('relEstoqueTabela')?.innerHTML || '';
+  const kpis  = document.getElementById('relEstoqueKpis')?.innerHTML || '';
 
   const win = window.open('', '_blank');
-  win.document.write(`<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Relatório de Estoque</title>
-<style>
-  @media print { @page { margin: 10mm 8mm; size: A4 landscape; } }
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; font-size: 9pt; }
-  body { padding: 12px; }
-  h1 { font-size: 13pt; margin-bottom: 4px; }
-  .sub { font-size: 8pt; color: #666; margin-bottom: 8px; }
-  .kpis { display: flex; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
-  .kpi { background: #f5f5f5; border-radius: 4px; padding: 5px 10px; font-size: 8pt; }
-  .kpi strong { display: block; font-size: 10pt; }
-  table { width: 100%; border-collapse: collapse; }
-  th { background: #333; color: #fff; padding: 4px 6px; text-align: left; font-size: 8pt; }
-  td { padding: 3px 6px; border-bottom: 1px solid #e0e0e0; font-size: 8pt; }
-  tr:nth-child(even) td { background: #f9f9f9; }
-</style>
-</head><body>
-<h1>Relatório de Estoque — Treemali</h1>
-<div class="sub">Gerado em ${data} · ${lista.length} produtos</div>
-<div class="kpis">
-  <div class="kpi"><strong>${totalItens}</strong>Total em Estoque</div>
-  <div class="kpi"><strong>${fmt(valorTotal)}</strong>Valor em Estoque</div>
-  <div class="kpi"><strong style="color:#e67e22">${baixo}</strong>Estoque Baixo</div>
-  <div class="kpi"><strong style="color:#c0392b">${zerado}</strong>Zerados</div>
-</div>
-<table><thead>${theadHtml}</thead><tbody>${tbodyHtml}</tbody></table>
-<script>window.print();<\/script>
-</body></html>`);
+  win.document.write(`
+    <html><head><title>Relatório de Estoque</title>
+    <style>
+      body { font-family: sans-serif; font-size: 12px; padding: 20px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+      th { background: #f4f4f4; padding: 10px; border: 1px solid #ddd; text-align: left; }
+      td { padding: 8px; border: 1px solid #ddd; }
+      .rkpi { display: inline-block; margin-right: 20px; padding: 10px; background: #f9f9f9; border-radius: 5px; }
+    </style>
+    </head><body>
+    <h1>Relatório de Estoque</h1>
+    <div class="kpis">${kpis}</div>
+    <table><thead>${thead}</thead><tbody>${tbody}</tbody></table>
+    <script>window.print();<\/script>
+    </body></html>
+  `);
   win.document.close();
 }
 
@@ -589,4 +505,344 @@ function copiarRelatorio() {
   navigator.clipboard.writeText(texto).then(() =>
     Toast.success('Copiado!', 'Relatório copiado para a área de transferência.')
   );
+}
+
+// ══════════════════════════════════════════════
+// EXTRATO DO CLIENTE
+// ══════════════════════════════════════════════
+
+let _clientesRel = [];
+
+async function carregarClientesRel() {
+  if (!window._supabase) return;
+  const { data } = await window._supabase
+    .from('clientes')
+    .select('id, nome, telefone, cidade')
+    .eq('ativo', true)
+    .order('nome');
+  _clientesRel = data || [];
+}
+
+// Dropdown de busca
+function _getDropdownClienteRel() {
+  let dd = document.getElementById('dropdownClienteRel');
+  if (!dd) {
+    dd = document.createElement('div');
+    dd.id = 'dropdownClienteRel';
+    dd.style.cssText = [
+      'display:none','position:fixed','background:#fff',
+      'border:1px solid #ddd','border-radius:8px',
+      'box-shadow:0 6px 20px rgba(0,0,0,0.15)',
+      'max-height:240px','overflow-y:auto','z-index:99999','min-width:260px'
+    ].join(';');
+    document.body.appendChild(dd);
+  }
+  return dd;
+}
+
+function _posicionarDropdownClienteRel() {
+  const input = document.getElementById('buscaClienteRel');
+  const dd = _getDropdownClienteRel();
+  const rect = input.getBoundingClientRect();
+  dd.style.top  = (rect.bottom + 4) + 'px';
+  dd.style.left = rect.left + 'px';
+  dd.style.width = rect.width + 'px';
+}
+
+function filtrarClientesRel(termo) {
+  const dd = _getDropdownClienteRel();
+  document.getElementById('clienteIdRel').value = '';
+  if (!termo.trim()) { dd.style.display = 'none'; return; }
+
+  const filtrados = _clientesRel.filter(c =>
+    c.nome.toLowerCase().includes(termo.toLowerCase().trim())
+  );
+  _posicionarDropdownClienteRel();
+
+  if (!filtrados.length) {
+    dd.innerHTML = '<div style="padding:10px 14px;color:#888;font-size:14px;">Nenhum cliente encontrado</div>';
+    dd.style.display = 'block';
+    return;
+  }
+
+  dd.innerHTML = filtrados.map(c => {
+    const nomeEsc = c.nome.replace(/'/g, "\\'");
+    return `<div onmousedown="selecionarClienteRel(${c.id}, '${nomeEsc}')"
+      style="padding:10px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid #f0f0f0;"
+      onmouseover="this.style.background='#f5f5f5'"
+      onmouseout="this.style.background=''">
+      <div style="font-weight:500">${c.nome}</div>
+      ${c.cidade ? `<div style="font-size:12px;color:#888">${c.cidade}</div>` : ''}
+    </div>`;
+  }).join('');
+  dd.style.display = 'block';
+}
+
+function selecionarClienteRel(id, nome) {
+  document.getElementById('clienteIdRel').value = id;
+  document.getElementById('buscaClienteRel').value = nome;
+  const dd = document.getElementById('dropdownClienteRel');
+  if (dd) dd.style.display = 'none';
+}
+
+function mostrarDropdownClienteRel() {
+  const termo = document.getElementById('buscaClienteRel').value;
+  if (termo.trim()) { _posicionarDropdownClienteRel(); filtrarClientesRel(termo); }
+}
+
+function esconderDropdownClienteRel() {
+  setTimeout(() => {
+    const dd = document.getElementById('dropdownClienteRel');
+    if (dd) dd.style.display = 'none';
+  }, 180);
+}
+
+window.addEventListener('scroll', () => {
+  const dd = document.getElementById('dropdownClienteRel');
+  if (dd && dd.style.display !== 'none') _posicionarDropdownClienteRel();
+}, true);
+
+// Gerar extrato
+async function gerarExtratoCliente() {
+  const clienteId = document.getElementById('clienteIdRel').value;
+  const nomeCliente = document.getElementById('buscaClienteRel').value;
+  const container = document.getElementById('relExtratoCliente');
+  const btnImprimir = document.getElementById('btnImprimirExtrato');
+
+  if (!clienteId) {
+    container.innerHTML = '<p style="color:var(--danger);text-align:center;padding:20px">Selecione um cliente primeiro.</p>';
+    return;
+  }
+
+  container.innerHTML = '<div class="rel-loading">Carregando extrato...</div>';
+  btnImprimir.style.display = 'none';
+
+  try {
+    // Busca dados do cliente
+    const { data: cliente } = await window._supabase
+      .from('clientes')
+      .select('id, nome, telefone, email, cidade, estado, data_nascimento')
+      .eq('id', clienteId).single();
+
+    // Busca todas as vendas do cliente com itens
+    const { data: vendas } = await window._supabase
+      .from('vendas')
+      .select('id, created_at, tipo, forma_pagamento, valor_total, status, itens_venda(quantidade, preco_vend, produtos(nome, descricao))')
+      .eq('cliente_id', clienteId)
+      .neq('status', 'cancelada')
+      .order('created_at', { ascending: true });
+
+    // Busca crediários e parcelas
+    const { data: crediariosRaw } = await window._supabase
+      .from('crediario')
+      .select('id, valor_total, parcelas, status, created_at, venda_id, parcelas_crediario(id, numero, valor, status, vencimento, data_pag, forma_pagamento)')
+      .eq('cliente_id', clienteId)
+      .order('created_at', { ascending: true });
+
+    const crediarios = crediariosRaw || [];
+    const vendasLista = vendas || [];
+
+    // Totais gerais
+    const totalCompras = vendasLista.reduce((s, v) => s + (v.valor_total || 0), 0);
+    const totalPago = crediarios.reduce((s, c) => {
+      const pago = (c.parcelas_crediario || [])
+        .filter(p => p.status === 'pago')
+        .reduce((sp, p) => sp + (p.valor || 0), 0);
+      return s + pago;
+    }, 0);
+    const totalPendente = crediarios.reduce((s, c) => {
+      const pend = (c.parcelas_crediario || [])
+        .filter(p => ['pendente','vencido'].includes(p.status))
+        .reduce((sp, p) => sp + (p.valor || 0), 0);
+      return s + pend;
+    }, 0);
+
+    const fmt = v => 'R$ ' + Number(v).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    const fmtDate = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+
+    // Render KPIs
+    let html = `
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px">
+        <div style="background:#f5f5f5;border-radius:8px;padding:12px 16px;min-width:140px">
+          <div style="font-size:11px;color:#666;margin-bottom:4px">Total em Compras</div>
+          <div style="font-size:18px;font-weight:700">${fmt(totalCompras)}</div>
+        </div>
+        <div style="background:#e8f5e9;border-radius:8px;padding:12px 16px;min-width:140px">
+          <div style="font-size:11px;color:#666;margin-bottom:4px">Total Pago</div>
+          <div style="font-size:18px;font-weight:700;color:#2e7d32">${fmt(totalPago)}</div>
+        </div>
+        <div style="background:#${totalPendente > 0 ? 'fff3e0' : 'f5f5f5'};border-radius:8px;padding:12px 16px;min-width:140px">
+          <div style="font-size:11px;color:#666;margin-bottom:4px">Saldo Devedor</div>
+          <div style="font-size:18px;font-weight:700;color:${totalPendente > 0 ? '#e65100' : '#333'}">${fmt(totalPendente)}</div>
+        </div>
+        <div style="background:#f5f5f5;border-radius:8px;padding:12px 16px;min-width:140px">
+          <div style="font-size:11px;color:#666;margin-bottom:4px">Compras Realizadas</div>
+          <div style="font-size:18px;font-weight:700">${vendasLista.length}</div>
+        </div>
+      </div>`;
+
+    // Render cada venda com seus itens e parcelas
+    if (!vendasLista.length) {
+      html += '<p style="color:#888;text-align:center;padding:20px">Nenhuma compra encontrada para este cliente.</p>';
+    } else {
+      vendasLista.forEach(v => {
+        const cred = crediarios.find(c => c.venda_id === v.id);
+        const dataVenda = new Date(v.created_at).toLocaleDateString('pt-BR');
+        const formaPag = v.forma_pagamento === 'crediario' ? 'Crediário' :
+                         v.forma_pagamento === 'dinheiro'  ? 'Dinheiro'  :
+                         v.forma_pagamento === 'pix'       ? 'PIX'       :
+                         v.forma_pagamento === 'debito'    ? 'Débito'    :
+                         v.forma_pagamento === 'credito'   ? 'Crédito'   : v.forma_pagamento;
+
+        html += `
+          <div style="border:1px solid #e0e0e0;border-radius:8px;margin-bottom:16px;overflow:hidden">
+            <div style="background:#f8f8f8;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+              <div>
+                <span style="font-weight:600">Venda #${v.id}</span>
+                <span style="color:#888;font-size:13px;margin-left:8px">${dataVenda}</span>
+                <span style="background:#e3f2fd;color:#1565c0;border-radius:4px;padding:2px 8px;font-size:12px;margin-left:8px">${formaPag}</span>
+              </div>
+              <div style="font-weight:700;font-size:15px">${fmt(v.valor_total)}</div>
+            </div>`;
+
+        // Itens da venda
+        if (v.itens_venda?.length) {
+          html += '<div style="padding:8px 14px;border-bottom:1px solid #f0f0f0">';
+          html += '<div style="font-size:12px;color:#888;margin-bottom:6px">PRODUTOS</div>';
+          v.itens_venda.forEach(item => {
+            html += `<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0">
+              <span>${item.produtos?.nome || '—'} ${item.produtos?.descricao ? '· ' + item.produtos.descricao : ''} (${item.quantidade}x)</span>
+              <span style="color:#555">${fmt(item.preco_vend * item.quantidade)}</span>
+            </div>`;
+          });
+          html += '</div>';
+        }
+
+        // Parcelas do crediário desta venda
+        if (cred) {
+          const parcelas = (cred.parcelas_crediario || []).sort((a,b) => a.numero - b.numero);
+          html += '<div style="padding:8px 14px">';
+          html += '<div style="font-size:12px;color:#888;margin-bottom:6px">PARCELAS DO CREDIÁRIO</div>';
+          parcelas.forEach(p => {
+            const statusColor = p.status === 'pago' ? '#2e7d32' : p.status === 'vencido' ? '#c62828' : '#e65100';
+            const statusLabel = p.status === 'pago' ? 'PAGO' : p.status === 'vencido' ? 'VENCIDO' : 'PENDENTE';
+            html += `<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:4px 0;border-bottom:1px solid #f5f5f5">
+              <div>
+                <span style="font-weight:500">${p.numero}/${cred.parcelas}</span>
+                <span style="color:#888;margin:0 8px">·</span>
+                <span>Venc: ${fmtDate(p.vencimento)}</span>
+                ${p.data_pag ? `<span style="color:#888;margin-left:8px">· Pago em: ${fmtDate(p.data_pag)}</span>` : ''}
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="font-weight:600">${fmt(p.valor)}</span>
+                <span style="background:${statusColor}22;color:${statusColor};border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600">${statusLabel}</span>
+              </div>
+            </div>`;
+          });
+          html += '</div>';
+        }
+
+        html += '</div>';
+      });
+    }
+
+    container.innerHTML = html;
+    btnImprimir.style.display = '';
+
+    // Salva dados para impressão
+    window._extratoAtual = { cliente, vendasLista, crediarios, totalCompras, totalPago, totalPendente, fmt, fmtDate };
+
+  } catch(err) {
+    container.innerHTML = `<p style="color:var(--danger);text-align:center;padding:20px">Erro ao carregar extrato: ${err.message}</p>`;
+  }
+}
+
+// Impressão do extrato
+function imprimirExtratoCliente() {
+  const d = window._extratoAtual;
+  if (!d) return;
+
+  const { cliente, vendasLista, crediarios, totalCompras, totalPago, totalPendente, fmt, fmtDate } = d;
+  const dataImpressao = new Date().toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+
+  let tbody = '';
+  vendasLista.forEach(v => {
+    const cred = crediarios.find(c => c.venda_id === v.id);
+    const dataVenda = new Date(v.created_at).toLocaleDateString('pt-BR');
+    const formaPag = v.forma_pagamento === 'crediario' ? 'Crediário' :
+                     v.forma_pagamento === 'dinheiro'  ? 'Dinheiro'  :
+                     v.forma_pagamento === 'pix'       ? 'PIX'       :
+                     v.forma_pagamento === 'debito'    ? 'Débito'    :
+                     v.forma_pagamento === 'credito'   ? 'Crédito'   : v.forma_pagamento;
+
+    // Linha da venda
+    tbody += `<tr style="background:#f0f0f0;font-weight:bold">
+      <td colspan="5">Venda #${v.id} — ${dataVenda} — ${formaPag} — Total: ${fmt(v.valor_total)}</td>
+    </tr>`;
+
+    // Itens
+    (v.itens_venda || []).forEach(item => {
+      tbody += `<tr>
+        <td style="padding-left:16px">📦 ${item.produtos?.nome || '—'} ${item.produtos?.descricao ? '(' + item.produtos.descricao + ')' : ''}</td>
+        <td style="text-align:center">${item.quantidade}x</td>
+        <td></td><td></td>
+        <td style="text-align:right">${fmt(item.preco_vend * item.quantidade)}</td>
+      </tr>`;
+    });
+
+    // Parcelas
+    if (cred) {
+      const parcelas = (cred.parcelas_crediario || []).sort((a,b) => a.numero - b.numero);
+      parcelas.forEach(p => {
+        const statusLabel = p.status === 'pago' ? 'PAGO' : p.status === 'vencido' ? 'VENCIDO' : 'PENDENTE';
+        const cor = p.status === 'pago' ? '#2e7d32' : p.status === 'vencido' ? '#c62828' : '#e65100';
+        tbody += `<tr>
+          <td style="padding-left:16px;color:#555">💳 Parcela ${p.numero}/${cred.parcelas}</td>
+          <td></td>
+          <td style="text-align:center">Venc: ${fmtDate(p.vencimento)}</td>
+          <td style="text-align:center">${p.data_pag ? 'Pago: ' + fmtDate(p.data_pag) : '—'}</td>
+          <td style="text-align:right;color:${cor};font-weight:600">${statusLabel} ${fmt(p.valor)}</td>
+        </tr>`;
+      });
+    }
+  });
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Extrato — ${cliente.nome}</title>
+<style>
+  @media print { @page { size: A4 portrait; margin: 10mm; } }
+  * { font-family: Arial, sans-serif; font-size: 9pt; box-sizing: border-box; margin:0; padding:0; }
+  body { padding: 14px; }
+  h1 { font-size: 14pt; margin-bottom: 2px; }
+  .sub { font-size: 8pt; color: #666; margin-bottom: 10px; }
+  .kpis { display:flex; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+  .kpi { background:#f5f5f5; border-radius:4px; padding:6px 12px; }
+  .kpi strong { display:block; font-size:11pt; }
+  table { width:100%; border-collapse:collapse; margin-top:4px; }
+  th { background:#333; color:#fff; padding:4px 6px; text-align:left; font-size:8pt; }
+  td { padding:3px 6px; border-bottom:1px solid #eee; font-size:8pt; }
+  .footer { margin-top:16px; font-size:8pt; color:#888; border-top:1px solid #ddd; padding-top:8px; }
+</style>
+</head><body>
+<h1>Extrato do Cliente — ${cliente.nome}</h1>
+<div class="sub">
+  ${cliente.telefone ? 'Tel: ' + cliente.telefone + ' · ' : ''}
+  ${cliente.cidade ? cliente.cidade + ' · ' : ''}
+  Gerado em ${dataImpressao}
+</div>
+<div class="kpis">
+  <div class="kpi"><strong>${fmt(totalCompras)}</strong>Total em Compras</div>
+  <div class="kpi"><strong style="color:#2e7d32">${fmt(totalPago)}</strong>Total Pago</div>
+  <div class="kpi"><strong style="color:${totalPendente > 0 ? '#e65100' : '#333'}">${fmt(totalPendente)}</strong>Saldo Devedor</div>
+  <div class="kpi"><strong>${vendasLista.length}</strong>Compras</div>
+</div>
+<table>
+  <thead><tr><th>Descrição</th><th>Qtd</th><th>Vencimento</th><th>Pagamento</th><th style="text-align:right">Valor</th></tr></thead>
+  <tbody>${tbody}</tbody>
+</table>
+<div class="footer">Treemali ERP · Extrato gerado em ${dataImpressao}</div>
+<script>window.print();<\/script>
+</body></html>`);
+  win.document.close();
 }
