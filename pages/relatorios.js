@@ -659,6 +659,9 @@ async function gerarExtratoCliente() {
     let crediarios = crediariosRaw || [];
     let vendasLista = vendas || [];
 
+    // Salva vendas à vista antes dos filtros (para cálculo correto do Total Pago)
+    const todasVendasAVista = vendasLista.filter(v => v.forma_pagamento !== 'crediario');
+
     // Aplica filtro de tipo
     if (tipoFiltro === 'avista') {
       // Só vendas à vista (não crediário)
@@ -701,8 +704,11 @@ async function gerarExtratoCliente() {
 
     // Totais calculados após filtros
     totalCompras     = vendasLista.reduce((s, v) => s + (v.valor_total || 0), 0);
-    totalAVistaPago  = vendasLista.filter(v => v.forma_pagamento !== 'crediario')
-                         .reduce((s, v) => s + (v.valor_total || 0), 0);
+    // À vista: só inclui quando tipo=avista ou tipo=todos+status=todos (mostra tudo)
+    const aVistaParaCalculo = (tipoFiltro === 'crediario') ? [] :
+                              (tipoFiltro === 'avista') ? todasVendasAVista :
+                              (statusFiltro === 'todos') ? todasVendasAVista : [];
+    totalAVistaPago = aVistaParaCalculo.reduce((s, v) => s + (v.valor_total || 0), 0);
     totalParcelasPago = crediarios.reduce((s, c) => {
       const pago = (c.parcelas_crediario || [])
         .filter(p => p.status === 'pago')
