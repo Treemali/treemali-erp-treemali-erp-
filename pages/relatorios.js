@@ -513,6 +513,16 @@ function copiarRelatorio() {
 
 let _clientesRel = [];
 
+function onChangeTipoExtrato() {
+  const tipo = document.getElementById('tipoFiltroExtrato')?.value || 'todos';
+  const statusSel = document.getElementById('statusFiltroExtrato');
+  // Só mostra filtro de status quando tipo = crediario
+  if (statusSel) {
+    statusSel.style.display = tipo === 'crediario' ? '' : 'none';
+    if (tipo !== 'crediario') statusSel.value = 'todos';
+  }
+}
+
 async function carregarClientesRel() {
   if (!window._supabase) return;
   const { data } = await window._supabase
@@ -620,6 +630,7 @@ async function gerarExtratoCliente() {
   try {
     // Pega período e status selecionados
     const { inicio, fim } = getPeriodoDatas();
+    const tipoFiltro   = document.getElementById('tipoFiltroExtrato')?.value || 'todos';
     const statusFiltro = document.getElementById('statusFiltroExtrato')?.value || 'todos';
 
     // Busca dados do cliente
@@ -648,24 +659,39 @@ async function gerarExtratoCliente() {
     let crediarios = crediariosRaw || [];
     let vendasLista = vendas || [];
 
-    // Aplica filtro de status
-    if (statusFiltro === 'aberto') {
-      // Só crediários com parcelas pendentes/vencidas
-      crediarios = crediarios.filter(c =>
-        (c.parcelas_crediario || []).some(p => ['pendente','vencido'].includes(p.status))
-      );
-      // Só vendas vinculadas a esses crediários em aberto
-      const idsComAberto = new Set(crediarios.map(c => c.venda_id));
-      vendasLista = vendasLista.filter(v => idsComAberto.has(v.id));
-    } else if (statusFiltro === 'quitado') {
-      // Só crediários totalmente pagos
-      crediarios = crediarios.filter(c =>
-        c.status === 'quitado' ||
-        (c.parcelas_crediario || []).every(p => p.status === 'pago')
-      );
-      // Só vendas vinculadas a esses crediários quitados
-      const idsQuitados = new Set(crediarios.map(c => c.venda_id));
-      vendasLista = vendasLista.filter(v => idsQuitados.has(v.id));
+    // Aplica filtro de tipo
+    if (tipoFiltro === 'avista') {
+      // Só vendas à vista (não crediário)
+      vendasLista = vendasLista.filter(v => v.forma_pagamento !== 'crediario');
+      crediarios  = [];
+    } else if (tipoFiltro === 'crediario') {
+      // Só vendas de crediário
+      vendasLista = vendasLista.filter(v => v.forma_pagamento === 'crediario');
+      // Aplica filtro de status dentro do crediário
+      if (statusFiltro === 'aberto') {
+        crediarios  = crediarios.filter(c =>
+          (c.parcelas_crediario || []).some(p => ['pendente','vencido'].includes(p.status))
+        );
+        const idsAberto = new Set(crediarios.map(c => c.venda_id));
+        vendasLista = vendasLista.filter(v => idsAberto.has(v.id));
+      } else if (statusFiltro === 'quitado') {
+        crediarios  = crediarios.filter(c =>
+          c.status === 'quitado' ||
+          (c.parcelas_crediario || []).every(p => p.status === 'pago')
+        );
+        const idsQuitado = new Set(crediarios.map(c => c.venda_id));
+        vendasLista = vendasLista.filter(v => idsQuitado.has(v.id));
+      }
+    } else {
+      // Todas — aplica só status se for "aberto" (único que faz sentido em Todas)
+      if (statusFiltro === 'aberto') {
+        const credAbertos = crediarios.filter(c =>
+          (c.parcelas_crediario || []).some(p => ['pendente','vencido'].includes(p.status))
+        );
+        const idsAberto = new Set(credAbertos.map(c => c.venda_id));
+        vendasLista = vendasLista.filter(v => idsAberto.has(v.id));
+        crediarios  = credAbertos;
+      }
     }
 
     // Totais gerais
