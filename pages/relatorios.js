@@ -650,20 +650,22 @@ async function gerarExtratoCliente() {
 
     // Aplica filtro de status
     if (statusFiltro === 'aberto') {
-      // Só vendas que têm crediário com parcelas pendentes/vencidas
+      // Só crediários com parcelas pendentes/vencidas
       crediarios = crediarios.filter(c =>
         (c.parcelas_crediario || []).some(p => ['pendente','vencido'].includes(p.status))
       );
+      // Só vendas vinculadas a esses crediários em aberto
       const idsComAberto = new Set(crediarios.map(c => c.venda_id));
-      vendasLista = vendasLista.filter(v => idsComAberto.has(v.id) || v.forma_pagamento !== 'crediario');
+      vendasLista = vendasLista.filter(v => idsComAberto.has(v.id));
     } else if (statusFiltro === 'quitado') {
       // Só crediários totalmente pagos
       crediarios = crediarios.filter(c =>
         c.status === 'quitado' ||
         (c.parcelas_crediario || []).every(p => p.status === 'pago')
       );
+      // Só vendas vinculadas a esses crediários quitados
       const idsQuitados = new Set(crediarios.map(c => c.venda_id));
-      vendasLista = vendasLista.filter(v => idsQuitados.has(v.id) || v.forma_pagamento !== 'crediario');
+      vendasLista = vendasLista.filter(v => idsQuitados.has(v.id));
     }
 
     // Totais gerais
