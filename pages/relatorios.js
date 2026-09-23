@@ -720,24 +720,57 @@ async function gerarExtratoCliente() {
 
         // Parcelas do crediário desta venda
         if (cred) {
-          const parcelas = (cred.parcelas_crediario || []).sort((a,b) => a.numero - b.numero);
+          // Agrupa parcelas pelo numero original para mostrar pagamentos parciais juntos
+          const todasParcelas = (cred.parcelas_crediario || []).sort((a,b) => a.numero - b.numero || a.id - b.id);
           html += '<div style="padding:8px 14px">';
           html += '<div style="font-size:12px;color:#888;margin-bottom:6px">PARCELAS DO CREDIÁRIO</div>';
-          parcelas.forEach(p => {
+
+          // Identifica parcelas originais (sem campo parcelas preenchido = originais)
+          // e parcelas filhas (geradas por pagamento parcial = tem campo parcelas preenchido)
+          const originais = todasParcelas.filter(p => !p.parcelas);
+          const filhas    = todasParcelas.filter(p =>  p.parcelas);
+
+          // Monta grupos: original + suas filhas
+          const grupos = originais.length ? originais : todasParcelas;
+          grupos.forEach(p => {
             const statusColor = p.status === 'pago' ? '#2e7d32' : p.status === 'vencido' ? '#c62828' : '#e65100';
             const statusLabel = p.status === 'pago' ? 'PAGO' : p.status === 'vencido' ? 'VENCIDO' : 'PENDENTE';
-            html += `<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:4px 0;border-bottom:1px solid #f5f5f5">
-              <div>
-                <span style="font-weight:500">${p.numero}/${cred.parcelas}</span>
-                <span style="color:#888;margin:0 8px">·</span>
-                <span>Venc: ${fmtDate(p.vencimento)}</span>
-                ${p.data_pag ? `<span style="color:#888;margin-left:8px">· Pago em: ${fmtDate(p.data_pag)}</span>` : ''}
-              </div>
-              <div style="display:flex;align-items:center;gap:10px">
-                <span style="font-weight:600">${fmt(p.valor)}</span>
-                <span style="background:${statusColor}22;color:${statusColor};border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600">${statusLabel}</span>
-              </div>
-            </div>`;
+            const fmtForma = f => f === 'dinheiro' ? '💵 Dinheiro' : f === 'pix' ? '⚡ PIX' :
+                                  f === 'debito' ? '💳 Débito' : f === 'credito' ? '💳 Crédito' : f || '';
+            html += `<div style="border:1px solid #eee;border-radius:6px;margin-bottom:8px;overflow:hidden">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#fafafa;flex-wrap:wrap;gap:6px">
+                <div>
+                  <span style="font-weight:600">${p.numero}/${cred.parcelas}</span>
+                  <span style="color:#888;margin:0 6px">·</span>
+                  <span style="font-size:12px">Venc: ${fmtDate(p.vencimento)}</span>
+                  ${p.status === 'pago' ? `<span style="color:#888;font-size:12px;margin-left:6px">· Pago em: ${fmtDate(p.data_pag)}</span>` : ''}
+                  ${p.status === 'pago' && p.forma_pagamento ? `<span style="background:#e3f2fd;color:#1565c0;border-radius:4px;padding:1px 6px;font-size:11px;margin-left:6px">${fmtForma(p.forma_pagamento)}</span>` : ''}
+                </div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="font-weight:700">${fmt(p.valor)}</span>
+                  <span style="background:${statusColor}22;color:${statusColor};border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600">${statusLabel}</span>
+                </div>
+              </div>`;
+
+            // Filhas desta parcela (pagamentos parciais)
+            const filhasDesteNumero = filhas.filter(f => f.numero === p.numero);
+            filhasDesteNumero.forEach(f => {
+              const fColor = f.status === 'pago' ? '#2e7d32' : f.status === 'vencido' ? '#c62828' : '#e65100';
+              const fLabel = f.status === 'pago' ? 'PAGO' : f.status === 'vencido' ? 'VENCIDO' : 'PENDENTE';
+              html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px 4px 20px;border-top:1px solid #f0f0f0;background:#fff;font-size:12px;flex-wrap:wrap;gap:4px">
+                <div style="color:#555">
+                  ↳ Saldo restante · Venc: ${fmtDate(f.vencimento)}
+                  ${f.status === 'pago' ? `· Pago em: ${fmtDate(f.data_pag)}` : ''}
+                  ${f.status === 'pago' && f.forma_pagamento ? `<span style="background:#e3f2fd;color:#1565c0;border-radius:4px;padding:1px 6px;font-size:11px;margin-left:4px">${fmtForma(f.forma_pagamento)}</span>` : ''}
+                </div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="font-weight:600">${fmt(f.valor)}</span>
+                  <span style="background:${fColor}22;color:${fColor};border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">${fLabel}</span>
+                </div>
+              </div>`;
+            });
+
+            html += '</div>';
           });
           html += '</div>';
         }
@@ -792,17 +825,38 @@ function imprimirExtratoCliente() {
 
     // Parcelas
     if (cred) {
-      const parcelas = (cred.parcelas_crediario || []).sort((a,b) => a.numero - b.numero);
-      parcelas.forEach(p => {
+      const todasParcelas = (cred.parcelas_crediario || []).sort((a,b) => a.numero - b.numero || a.id - b.id);
+      const originais = todasParcelas.filter(p => !p.parcelas);
+      const filhas    = todasParcelas.filter(p =>  p.parcelas);
+      const grupos    = originais.length ? originais : todasParcelas;
+      const fmtForma  = f => f === 'dinheiro' ? 'Dinheiro' : f === 'pix' ? 'PIX' :
+                             f === 'debito' ? 'Débito' : f === 'credito' ? 'Crédito' : f || '';
+
+      grupos.forEach(p => {
         const statusLabel = p.status === 'pago' ? 'PAGO' : p.status === 'vencido' ? 'VENCIDO' : 'PENDENTE';
         const cor = p.status === 'pago' ? '#2e7d32' : p.status === 'vencido' ? '#c62828' : '#e65100';
+        const formaPag = p.status === 'pago' && p.forma_pagamento ? ' · ' + fmtForma(p.forma_pagamento) : '';
         tbody += `<tr>
-          <td style="padding-left:16px;color:#555">💳 Parcela ${p.numero}/${cred.parcelas}</td>
+          <td style="padding-left:16px;color:#555">💳 Parcela ${p.numero}/${cred.parcelas}${formaPag}</td>
           <td></td>
           <td style="text-align:center">Venc: ${fmtDate(p.vencimento)}</td>
           <td style="text-align:center">${p.data_pag ? 'Pago: ' + fmtDate(p.data_pag) : '—'}</td>
           <td style="text-align:right;color:${cor};font-weight:600">${statusLabel} ${fmt(p.valor)}</td>
         </tr>`;
+
+        // Filhas (saldo restante de pagamento parcial)
+        filhas.filter(f => f.numero === p.numero).forEach(f => {
+          const fLabel = f.status === 'pago' ? 'PAGO' : f.status === 'vencido' ? 'VENCIDO' : 'PENDENTE';
+          const fCor   = f.status === 'pago' ? '#2e7d32' : f.status === 'vencido' ? '#c62828' : '#e65100';
+          const fForma = f.status === 'pago' && f.forma_pagamento ? ' · ' + fmtForma(f.forma_pagamento) : '';
+          tbody += `<tr style="background:#fafafa">
+            <td style="padding-left:28px;color:#777;font-style:italic">↳ Saldo restante${fForma}</td>
+            <td></td>
+            <td style="text-align:center">Venc: ${fmtDate(f.vencimento)}</td>
+            <td style="text-align:center">${f.data_pag ? 'Pago: ' + fmtDate(f.data_pag) : '—'}</td>
+            <td style="text-align:right;color:${fCor};font-weight:600">${fLabel} ${fmt(f.valor)}</td>
+          </tr>`;
+        });
       });
     }
   });
