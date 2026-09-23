@@ -709,12 +709,16 @@ async function gerarExtratoCliente() {
                               (tipoFiltro === 'avista') ? todasVendasAVista :
                               (statusFiltro === 'todos') ? todasVendasAVista : [];
     totalAVistaPago = aVistaParaCalculo.reduce((s, v) => s + (v.valor_total || 0), 0);
-    totalParcelasPago = crediarios.reduce((s, c) => {
-      const pago = (c.parcelas_crediario || [])
-        .filter(p => p.status === 'pago')
-        .reduce((sp, p) => sp + (p.valor || 0), 0);
-      return s + pago;
-    }, 0);
+    // Só soma parcelas de crediários vinculados às vendas exibidas
+    const idsVendasExibidas = new Set(vendasLista.map(v => v.id));
+    totalParcelasPago = crediarios
+      .filter(c => idsVendasExibidas.has(c.venda_id))
+      .reduce((s, c) => {
+        const pago = (c.parcelas_crediario || [])
+          .filter(p => p.status === 'pago')
+          .reduce((sp, p) => sp + (p.valor || 0), 0);
+        return s + pago;
+      }, 0);
     totalPago     = totalAVistaPago + totalParcelasPago;
     totalPendente = Math.max(0, totalCompras - totalPago);
 
