@@ -695,22 +695,22 @@ async function gerarExtratoCliente() {
     }
 
     // Totais gerais
-    // Total em Compras = tudo que o cliente comprou (à vista + crediário)
-    const totalCompras = vendasLista.reduce((s, v) => s + (v.valor_total || 0), 0);
+    // ── Totais calculados APÓS aplicação dos filtros ──
+    // (placeholder — calculados após filtros abaixo)
+    let totalCompras = 0, totalPago = 0, totalAVistaPago = 0, totalParcelasPago = 0, totalPendente = 0;
 
-    // Total Pago = vendas à vista (pagas na hora) + parcelas pagas do crediário
-    const vendasAVista = vendasLista.filter(v => v.forma_pagamento !== 'crediario');
-    const totalAVistaPago = vendasAVista.reduce((s, v) => s + (v.valor_total || 0), 0);
-    const totalParcelasPago = crediarios.reduce((s, c) => {
+    // Totais calculados após filtros
+    totalCompras     = vendasLista.reduce((s, v) => s + (v.valor_total || 0), 0);
+    totalAVistaPago  = vendasLista.filter(v => v.forma_pagamento !== 'crediario')
+                         .reduce((s, v) => s + (v.valor_total || 0), 0);
+    totalParcelasPago = crediarios.reduce((s, c) => {
       const pago = (c.parcelas_crediario || [])
         .filter(p => p.status === 'pago')
         .reduce((sp, p) => sp + (p.valor || 0), 0);
       return s + pago;
     }, 0);
-    const totalPago = totalAVistaPago + totalParcelasPago;
-
-    // Saldo Devedor = Total Compras - Total Pago
-    const totalPendente = Math.max(0, totalCompras - totalPago);
+    totalPago     = totalAVistaPago + totalParcelasPago;
+    totalPendente = Math.max(0, totalCompras - totalPago);
 
     const fmt = v => 'R$ ' + Number(v).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     const fmtDate = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
