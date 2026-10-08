@@ -19,11 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-      if (btn.dataset.tab === 'cliente') {
-        if (_clientesRel.length === 0) carregarClientesRel();
-      } else {
-        gerarRelatorios();
-      }
+      gerarRelatorios();
     });
   });
 
@@ -308,43 +304,164 @@ async function gerarRelProdutos(inicio, fim) {
 
 async function gerarRelVendedores(inicio, fim) {
   try {
-    let vendas = [];
+    let vendas = [], usuarios = [];
     if (!window._supabase) {
-      vendas = [{ usuarios:{nome:'Admin'}, valor_total:1000, lucro:400, itens_venda:[] }];
+      vendas = [{ vendedor_id:1, usuarios:{id:1, nome:'Admin', comissao_pct:5}, valor_total:1000, lucro:400, itens_venda:[] }];
+      usuarios = [{ id:1, nome:'Admin', comissao_pct:5 }];
     } else {
-      const { data, error } = await window._supabase
-        .from('vendas')
-        .select('valor_total, lucro, usuarios(nome), itens_venda(desconto)')
-        .gte('created_at', inicio).lte('created_at', fim)
-        .eq('status', 'concluida');
-      if (error) throw error;
-      vendas = data || [];
+      const [vendasRes, usuariosRes] = await Promise.all([
+        window._supabase
+          .from('vendas')
+          .select('vendedor_id, valor_total, lucro, usuarios(id, nome, comissao_pct), itens_venda(desconto)')
+          .gte('created_at', inicio).lte('created_at', fim)
+          .eq('status', 'concluida'),
+        window._supabase
+          .from('usuarios')
+          .select('id, nome, comissao_pct')
+          .eq('ativo', true)
+          .order('nome')
+      ]);
+      if (vendasRes.error) throw vendasRes.error;
+      vendas   = vendasRes.data   || [];
+      usuarios = usuariosRes.data || [];
     }
 
     const mapa = {};
     vendas.forEach(v => {
+      const uid  = v.usuarios?.id || v.vendedor_id || 'sem';
       const nome = v.usuarios?.nome || 'Sem vendedor';
-      if (!mapa[nome]) mapa[nome] = { nome, qtd:0, total:0, desconto:0, lucro:0 };
-      mapa[nome].qtd++;
-      mapa[nome].total += v.valor_total || 0;
-      mapa[nome].lucro += v.lucro || 0;
-      
-      // Soma o desconto de cada item daquela venda
+      const pct  = v.usuarios?.comissao_pct || 0;
+      if (!mapa[uid]) mapa[uid] = { uid, nome, pct, qtd:0, total:0, desconto:0, lucro:0 };
+      mapa[uid].qtd++;
+      mapa[uid].total += v.valor_total || 0;
+      mapa[uid].lucro += v.lucro || 0;
       const descTotalVenda = (v.itens_venda || []).reduce((s, i) => s + (i.desconto || 0), 0);
-      mapa[nome].desconto += descTotalVenda;
+      mapa[uid].desconto += descTotalVenda;
     });
 
+    // Guarda dados para fechamento
+    window._dadosVendedores = { mapa, inicio, fim };
+
     const lista = Object.values(mapa).sort((a,b) => b.total - a.total);
-    document.getElementById('relVendedores').innerHTML = lista.map(v => `
-      <tr>
+    document.getElementById('relVendedores').innerHTML = lista.length ? lista.map(v => {
+      const comissao = v.total * (v.pct / 100);
+      return `<tr>
         <td><strong>${v.nome}</strong></td>
         <td>${v.qtd}</td>
         <td>${Format.currency(v.total)}</td>
         <td style="color:${v.desconto>0?'var(--color-warning)':'var(--color-gray-400)'}">${Format.currency(v.desconto)}</td>
         <td>${Format.currency(v.qtd>0?v.total/v.qtd:0)}</td>
-      </tr>
-    `).join('') || '<tr><td colspan="5" class="rel-loading">Sem vendas no período</td></tr>';
+        <td style="text-align:center">${v.pct ? v.pct + '%' : '—'}</td>
+        <td style="font-weight:600;color:var(--color-primary)">${v.pct ? Format.currency(comissao) : '—'}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="fecharPeriodoVendedor('${v.uid}')">📋 Fechar</button></td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="8" class="rel-loading">Sem vendas no período</td></tr>';
+
+    // Carrega histórico de fechamentos
+    await carregarFechamentos();
+
   } catch (err) { console.error('Erro vendedores:', err); }
+}
+
+async function carregarFechamentos() {
+  if (!window._supabase) return;
+  const { data } = await window._supabase
+    .from('fechamentos_comissao')
+    .select('*, usuarios(nome)')
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  const lista = data || [];
+  const fmtDate = d => d ? new Date(d).toLocaleDateString('pt-BR') : '—';
+  document.getElementById('relFechamentos').innerHTML = lista.length ? lista.map(f => `
+    <tr>
+      <td><strong>${f.usuarios?.nome || '—'}</strong></td>
+      <td>${fmtDate(f.periodo_inicio)} → ${fmtDate(f.periodo_fim)}</td>
+      <td>${f.qtd_vendas}</td>
+      <td>${Format.currency(f.total_vendas)}</td>
+      <td style="text-align:center">${f.comissao_pct}%</td>
+      <td style="font-weight:600;color:var(--color-primary)">${Format.currency(f.valor_comissao)}</td>
+      <td style="color:var(--text-muted);font-size:12px">${new Date(f.created_at).toLocaleDateString('pt-BR')}</td>
+    </tr>
+  `).join('') : '<tr><td colspan="7" class="rel-loading">Nenhum fechamento registrado</td></tr>';
+}
+
+async function fecharPeriodoVendedor(uid) {
+  const d = window._dadosVendedores;
+  if (!d) { Toast.error('Gere o relatório primeiro.'); return; }
+
+  const v = d.mapa[uid];
+  if (!v) return;
+  if (!v.pct) {
+    Toast.error('Vendedor sem % de comissão configurado.', 'Configure no Cadastro → Vendedores.');
+    return;
+  }
+
+  const comissao = Math.round(v.total * (v.pct / 100) * 100) / 100;
+  const confirmMsg = `Fechar período para ${v.nome}?
+
+Total vendido: ${Format.currency(v.total)}
+Comissão (${v.pct}%): ${Format.currency(comissao)}`;
+  if (!confirm(confirmMsg)) return;
+
+  const obs = prompt('Observação (opcional):') || '';
+
+  const { error } = await window._supabase
+    .from('fechamentos_comissao')
+    .insert({
+      usuario_id:      uid === 'sem' ? null : parseInt(uid),
+      periodo_inicio:  d.inicio.split('T')[0],
+      periodo_fim:     d.fim.split('T')[0],
+      total_vendas:    v.total,
+      comissao_pct:    v.pct,
+      valor_comissao:  comissao,
+      qtd_vendas:      v.qtd,
+      status:          'fechado',
+      observacao:      obs || null,
+    });
+
+  if (error) { Toast.error('Erro ao fechar período: ' + error.message); return; }
+  Toast.success('Período fechado!', `Comissão de ${Format.currency(comissao)} registrada para ${v.nome}.`);
+  await carregarFechamentos();
+}
+
+async function fecharPeriodoTodos() {
+  const d = window._dadosVendedores;
+  if (!d) { Toast.error('Gere o relatório primeiro.'); return; }
+
+  const lista = Object.values(d.mapa).filter(v => v.pct > 0);
+  if (!lista.length) {
+    Toast.error('Nenhum vendedor com % de comissão configurado.');
+    return;
+  }
+
+  const resumo = lista.map(v => {
+    const c = Math.round(v.total * (v.pct / 100) * 100) / 100;
+    return `${v.nome}: ${Format.currency(c)} (${v.pct}%)`;
+  }).join('\n');
+
+  if (!confirm(`Fechar período para todos os vendedores?\n\n${resumo}`)) return;
+  const obs = prompt('Observação (opcional):') || '';
+
+  const inserts = lista.map(v => ({
+    usuario_id:     v.uid === 'sem' ? null : parseInt(v.uid),
+    periodo_inicio: d.inicio.split('T')[0],
+    periodo_fim:    d.fim.split('T')[0],
+    total_vendas:   v.total,
+    comissao_pct:   v.pct,
+    valor_comissao: Math.round(v.total * (v.pct / 100) * 100) / 100,
+    qtd_vendas:     v.qtd,
+    status:         'fechado',
+    observacao:     obs || null,
+  }));
+
+  const { error } = await window._supabase
+    .from('fechamentos_comissao')
+    .insert(inserts);
+
+  if (error) { Toast.error('Erro ao fechar período: ' + error.message); return; }
+  Toast.success('Período fechado para todos!', `${lista.length} vendedor(es) registrado(s).`);
+  await carregarFechamentos();
 }
 
 // ══════════════════════════════════════════════
@@ -506,463 +623,3 @@ function copiarRelatorio() {
     Toast.success('Copiado!', 'Relatório copiado para a área de transferência.')
   );
 }
-
-// ══════════════════════════════════════════════
-// EXTRATO DO CLIENTE
-// ══════════════════════════════════════════════
-
-let _clientesRel = [];
-
-function onChangeTipoExtrato() {
-  const tipo = document.getElementById('tipoFiltroExtrato')?.value || 'todos';
-  const statusSel = document.getElementById('statusFiltroExtrato');
-  // Só mostra filtro de status quando tipo = crediario
-  if (statusSel) {
-    statusSel.style.display = tipo === 'crediario' ? '' : 'none';
-    if (tipo !== 'crediario') statusSel.value = 'todos';
-  }
-}
-
-async function carregarClientesRel() {
-  if (!window._supabase) return;
-  const { data } = await window._supabase
-    .from('clientes')
-    .select('id, nome, telefone, cidade')
-    .eq('ativo', true)
-    .order('nome');
-  _clientesRel = data || [];
-}
-
-// Dropdown de busca
-function _getDropdownClienteRel() {
-  let dd = document.getElementById('dropdownClienteRel');
-  if (!dd) {
-    dd = document.createElement('div');
-    dd.id = 'dropdownClienteRel';
-    dd.style.cssText = [
-      'display:none','position:fixed','background:#fff',
-      'border:1px solid #ddd','border-radius:8px',
-      'box-shadow:0 6px 20px rgba(0,0,0,0.15)',
-      'max-height:240px','overflow-y:auto','z-index:99999','min-width:260px'
-    ].join(';');
-    document.body.appendChild(dd);
-  }
-  return dd;
-}
-
-function _posicionarDropdownClienteRel() {
-  const input = document.getElementById('buscaClienteRel');
-  const dd = _getDropdownClienteRel();
-  const rect = input.getBoundingClientRect();
-  dd.style.top  = (rect.bottom + 4) + 'px';
-  dd.style.left = rect.left + 'px';
-  dd.style.width = rect.width + 'px';
-}
-
-function filtrarClientesRel(termo) {
-  const dd = _getDropdownClienteRel();
-  document.getElementById('clienteIdRel').value = '';
-  if (!termo.trim()) { dd.style.display = 'none'; return; }
-
-  const filtrados = _clientesRel.filter(c =>
-    c.nome.toLowerCase().includes(termo.toLowerCase().trim())
-  );
-  _posicionarDropdownClienteRel();
-
-  if (!filtrados.length) {
-    dd.innerHTML = '<div style="padding:10px 14px;color:#888;font-size:14px;">Nenhum cliente encontrado</div>';
-    dd.style.display = 'block';
-    return;
-  }
-
-  dd.innerHTML = filtrados.map(c => {
-    const nomeEsc = c.nome.replace(/'/g, "\\'");
-    return `<div onmousedown="selecionarClienteRel(${c.id}, '${nomeEsc}')"
-      style="padding:10px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid #f0f0f0;"
-      onmouseover="this.style.background='#f5f5f5'"
-      onmouseout="this.style.background=''">
-      <div style="font-weight:500">${c.nome}</div>
-      ${c.cidade ? `<div style="font-size:12px;color:#888">${c.cidade}</div>` : ''}
-    </div>`;
-  }).join('');
-  dd.style.display = 'block';
-}
-
-function selecionarClienteRel(id, nome) {
-  document.getElementById('clienteIdRel').value = id;
-  document.getElementById('buscaClienteRel').value = nome;
-  const dd = document.getElementById('dropdownClienteRel');
-  if (dd) dd.style.display = 'none';
-}
-
-function mostrarDropdownClienteRel() {
-  const termo = document.getElementById('buscaClienteRel').value;
-  if (termo.trim()) { _posicionarDropdownClienteRel(); filtrarClientesRel(termo); }
-}
-
-function esconderDropdownClienteRel() {
-  setTimeout(() => {
-    const dd = document.getElementById('dropdownClienteRel');
-    if (dd) dd.style.display = 'none';
-  }, 180);
-}
-
-window.addEventListener('scroll', () => {
-  const dd = document.getElementById('dropdownClienteRel');
-  if (dd && dd.style.display !== 'none') _posicionarDropdownClienteRel();
-}, true);
-
-// Gerar extrato
-async function gerarExtratoCliente() {
-  const clienteId = document.getElementById('clienteIdRel').value;
-  const nomeCliente = document.getElementById('buscaClienteRel').value;
-  const container = document.getElementById('relExtratoCliente');
-  const btnImprimir = document.getElementById('btnImprimirExtrato');
-
-  if (!clienteId) {
-    container.innerHTML = '<p style="color:var(--danger);text-align:center;padding:20px">Selecione um cliente primeiro.</p>';
-    return;
-  }
-
-  container.innerHTML = '<div class="rel-loading">Carregando extrato...</div>';
-  btnImprimir.style.display = 'none';
-
-  try {
-    // Pega período e status selecionados
-    const { inicio, fim } = getPeriodoDatas();
-    const tipoFiltro   = document.getElementById('tipoFiltroExtrato')?.value || 'todos';
-    const statusFiltro = document.getElementById('statusFiltroExtrato')?.value || 'todos';
-
-    // Busca dados do cliente
-    const { data: cliente } = await window._supabase
-      .from('clientes')
-      .select('id, nome, telefone, email, cidade, estado, data_nascimento')
-      .eq('id', clienteId).single();
-
-    // Busca vendas do cliente NO PERÍODO
-    const { data: vendas } = await window._supabase
-      .from('vendas')
-      .select('id, created_at, tipo, forma_pagamento, valor_total, status, itens_venda(quantidade, preco_vend, produtos(nome, descricao))')
-      .eq('cliente_id', clienteId)
-      .neq('status', 'cancelada')
-      .gte('created_at', inicio)
-      .lte('created_at', fim)
-      .order('created_at', { ascending: true });
-
-    // Busca crediários do período
-    const { data: crediariosRaw } = await window._supabase
-      .from('crediario')
-      .select('id, valor_total, parcelas, status, created_at, venda_id, parcelas_crediario(id, numero, valor, status, vencimento, data_pag, forma_pagamento, parcelas)')
-      .eq('cliente_id', clienteId)
-      .order('created_at', { ascending: true });
-
-    let crediarios = crediariosRaw || [];
-    let vendasLista = vendas || [];
-
-    // Salva vendas à vista antes dos filtros (para cálculo correto do Total Pago)
-    const todasVendasAVista = vendasLista.filter(v => v.forma_pagamento !== 'crediario');
-
-    // Aplica filtro de tipo
-    if (tipoFiltro === 'avista') {
-      // Só vendas à vista (não crediário)
-      vendasLista = vendasLista.filter(v => v.forma_pagamento !== 'crediario');
-      crediarios  = [];
-    } else if (tipoFiltro === 'crediario') {
-      // Só vendas de crediário
-      vendasLista = vendasLista.filter(v => v.forma_pagamento === 'crediario');
-      // Aplica filtro de status dentro do crediário
-      if (statusFiltro === 'aberto') {
-        crediarios  = crediarios.filter(c =>
-          (c.parcelas_crediario || []).some(p => ['pendente','vencido'].includes(p.status))
-        );
-        const idsAberto = new Set(crediarios.map(c => c.venda_id));
-        vendasLista = vendasLista.filter(v => idsAberto.has(v.id));
-      } else if (statusFiltro === 'quitado') {
-        crediarios  = crediarios.filter(c =>
-          c.status === 'quitado' ||
-          (c.parcelas_crediario || []).every(p => p.status === 'pago')
-        );
-        const idsQuitado = new Set(crediarios.map(c => c.venda_id));
-        vendasLista = vendasLista.filter(v => idsQuitado.has(v.id));
-      }
-    } else {
-      // Todas — aplica só status se for "aberto" (único que faz sentido em Todas)
-      if (statusFiltro === 'aberto') {
-        const credAbertos = crediarios.filter(c =>
-          (c.parcelas_crediario || []).some(p => ['pendente','vencido'].includes(p.status))
-        );
-        const idsAberto = new Set(credAbertos.map(c => c.venda_id));
-        vendasLista = vendasLista.filter(v => idsAberto.has(v.id));
-        crediarios  = credAbertos;
-      }
-    }
-
-    // Totais gerais
-    // ── Totais calculados APÓS aplicação dos filtros ──
-    // (placeholder — calculados após filtros abaixo)
-    let totalCompras = 0, totalPago = 0, totalAVistaPago = 0, totalParcelasPago = 0, totalPendente = 0;
-
-    // Totais calculados após filtros
-    totalCompras     = vendasLista.reduce((s, v) => s + (v.valor_total || 0), 0);
-    // À vista: só inclui quando tipo=avista ou tipo=todos+status=todos (mostra tudo)
-    const aVistaParaCalculo = (tipoFiltro === 'crediario') ? [] :
-                              (tipoFiltro === 'avista') ? todasVendasAVista :
-                              (statusFiltro === 'todos') ? todasVendasAVista : [];
-    totalAVistaPago = aVistaParaCalculo.reduce((s, v) => s + (v.valor_total || 0), 0);
-    // Só soma parcelas de crediários vinculados às vendas exibidas
-    const idsVendasExibidas = new Set(vendasLista.map(v => v.id));
-    totalParcelasPago = crediarios
-      .filter(c => idsVendasExibidas.has(c.venda_id))
-      .reduce((s, c) => {
-        const pago = (c.parcelas_crediario || [])
-          .filter(p => p.status === 'pago')
-          .reduce((sp, p) => sp + (p.valor || 0), 0);
-        return s + pago;
-      }, 0);
-    totalPago     = totalAVistaPago + totalParcelasPago;
-    totalPendente = Math.max(0, totalCompras - totalPago);
-
-    const fmt = v => 'R$ ' + Number(v).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    const fmtDate = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
-    const fmtForma = f => f === 'dinheiro' ? '💵 Dinheiro' : f === 'pix' ? '⚡ PIX' :
-                          f === 'debito' ? '💳 Débito' : f === 'credito' ? '💳 Crédito' :
-                          f === 'crediario' ? '📋 Crediário' : f || '';
-
-    // ── KPIs ──
-    let html = `
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px;padding-bottom:20px;border-bottom:2px solid #f0f0f0">
-        <div style="flex:1;min-width:130px;background:#f8f8f8;border-radius:10px;padding:14px 18px;border-left:4px solid #9E8E82">
-          <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Total em Compras</div>
-          <div style="font-size:20px;font-weight:700;color:#333">${fmt(totalCompras)}</div>
-        </div>
-        <div style="flex:1;min-width:130px;background:#f0faf0;border-radius:10px;padding:14px 18px;border-left:4px solid #2e7d32">
-          <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Total Pago</div>
-          <div style="font-size:20px;font-weight:700;color:#2e7d32">${fmt(totalPago)}</div>
-        </div>
-        <div style="flex:1;min-width:130px;background:${totalPendente > 0 ? '#fff8f0' : '#f0faf0'};border-radius:10px;padding:14px 18px;border-left:4px solid ${totalPendente > 0 ? '#e65100' : '#2e7d32'}">
-          <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Saldo Devedor</div>
-          <div style="font-size:20px;font-weight:700;color:${totalPendente > 0 ? '#e65100' : '#2e7d32'}">${fmt(totalPendente)}</div>
-        </div>
-        <div style="flex:1;min-width:130px;background:#f8f8f8;border-radius:10px;padding:14px 18px;border-left:4px solid #9E8E82">
-          <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Compras</div>
-          <div style="font-size:20px;font-weight:700;color:#333">${vendasLista.length}</div>
-        </div>
-      </div>`;
-
-    // ── Vendas ──
-    if (!vendasLista.length) {
-      html += '<p style="color:#888;text-align:center;padding:32px">Nenhuma compra encontrada.</p>';
-    } else {
-      vendasLista.forEach(v => {
-        const cred = crediarios.find(c => c.venda_id === v.id);
-        const dataVenda = new Date(v.created_at).toLocaleDateString('pt-BR');
-        const isCredVenda = v.forma_pagamento === 'crediario';
-        const formaPagLabel = fmtForma(v.forma_pagamento);
-        const corForma = isCredVenda ? '#7b5e3a' : '#1565c0';
-        const bgForma  = isCredVenda ? '#fdf3e7' : '#e3f2fd';
-
-        html += `<div style="margin-bottom:20px;border:1px solid #e8e8e8;border-radius:10px;overflow:hidden">
-          <div style="background:#fafafa;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;border-bottom:1px solid #e8e8e8">
-            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-              <span style="font-weight:700;font-size:14px;color:#333">Venda #${v.id}</span>
-              <span style="color:#999;font-size:13px">${dataVenda}</span>
-              <span style="background:${bgForma};color:${corForma};border-radius:20px;padding:2px 10px;font-size:12px;font-weight:500">${formaPagLabel}</span>
-            </div>
-            <span style="font-weight:700;font-size:15px;color:#333">${fmt(v.valor_total)}</span>
-          </div>`;
-
-        // Itens
-        if (v.itens_venda?.length) {
-          html += `<div style="padding:10px 16px;background:#fff">`;
-          html += `<div style="font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Produtos</div>`;
-          v.itens_venda.forEach(item => {
-            html += `<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid #f5f5f5;color:#444">
-              <span>${item.produtos?.nome || '—'}${item.produtos?.descricao ? ' · <span style="color:#888">' + item.produtos.descricao + '</span>' : ''} <span style="color:#aaa">(${item.quantidade}x)</span></span>
-              <span style="font-weight:500;color:#333">${fmt(item.preco_vend * item.quantidade)}</span>
-            </div>`;
-          });
-          html += `</div>`;
-        }
-
-        // Parcelas
-        if (cred) {
-          const parcelas = (cred.parcelas_crediario || []).sort((a,b) => a.numero - b.numero || a.id - b.id);
-          html += `<div style="padding:10px 16px;background:#fdfcfb;border-top:1px solid #f0f0f0">`;
-          html += `<div style="font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Parcelas do Crediário</div>`;
-          parcelas.forEach(p => {
-            const isPago   = p.status === 'pago';
-            const isVencido = p.status === 'vencido';
-            const cor   = isPago ? '#2e7d32' : isVencido ? '#c62828' : '#e65100';
-            const bgCor = isPago ? '#f0faf0' : isVencido ? '#fff0f0' : '#fff8f0';
-            const label = isPago ? 'PAGO' : isVencido ? 'VENCIDO' : 'PENDENTE';
-            const formaLabel = isPago && p.forma_pagamento ? ' · ' + fmtForma(p.forma_pagamento) : '';
-            html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f5f5f5;flex-wrap:wrap;gap:4px">
-              <div style="font-size:13px;color:#555">
-                <span style="font-weight:600;color:#333">${p.numero}/${cred.parcelas}</span>
-                <span style="color:#ccc;margin:0 6px">|</span>
-                <span>Venc: ${fmtDate(p.vencimento)}</span>
-                ${isPago ? `<span style="color:#999;margin-left:6px">· Pago: ${fmtDate(p.data_pag)}${formaLabel}</span>` : ''}
-              </div>
-              <div style="display:flex;align-items:center;gap:8px">
-                <span style="font-weight:600;color:#333">${fmt(p.valor)}</span>
-                <span style="background:${bgCor};color:${cor};border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600">${label}</span>
-              </div>
-            </div>`;
-          });
-          html += `</div>`;
-        }
-
-        html += `</div>`;
-      });
-    }
-
-    container.innerHTML = html;
-    btnImprimir.style.display = '';
-
-    // Salva dados para impressão
-    window._extratoAtual = { cliente, vendasLista, crediarios, totalCompras, totalPago, totalPendente, totalAVistaPago, totalParcelasPago, fmt, fmtDate, fmtForma };
-
-  } catch(err) {
-    container.innerHTML = `<p style="color:var(--danger);text-align:center;padding:20px">Erro ao carregar extrato: ${err.message}</p>`;
-  }
-}
-
-// Impressão do extrato
-function imprimirExtratoCliente() {
-  const d = window._extratoAtual;
-  if (!d) return;
-
-  const { cliente, vendasLista, crediarios, totalCompras, totalPago, totalPendente, fmt, fmtDate, fmtForma } = d;
-  const dataImpressao = new Date().toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
-
-  let corpo = '';
-  vendasLista.forEach(v => {
-    const cred = crediarios.find(c => c.venda_id === v.id);
-    const dataVenda = new Date(v.created_at).toLocaleDateString('pt-BR');
-    const isCredVenda = v.forma_pagamento === 'crediario';
-    const formaPagLabel = fmtForma ? fmtForma(v.forma_pagamento) :
-      v.forma_pagamento === 'pix' ? 'PIX' : v.forma_pagamento === 'dinheiro' ? 'Dinheiro' :
-      v.forma_pagamento === 'debito' ? 'Débito' : v.forma_pagamento === 'credito' ? 'Crédito' :
-      v.forma_pagamento === 'crediario' ? 'Crediário' : v.forma_pagamento;
-
-    corpo += `<div class="venda">
-      <div class="venda-header">
-        <div>
-          <strong>Venda #${v.id}</strong>
-          <span class="data">${dataVenda}</span>
-          <span class="badge ${isCredVenda ? 'badge-cred' : 'badge-pag'}">${formaPagLabel}</span>
-        </div>
-        <strong>${fmt(v.valor_total)}</strong>
-      </div>`;
-
-    // Itens
-    if (v.itens_venda?.length) {
-      corpo += `<div class="section-label">Produtos</div><table class="itens">`;
-      v.itens_venda.forEach(item => {
-        corpo += `<tr>
-          <td>${item.produtos?.nome || '—'}${item.produtos?.descricao ? ' · ' + item.produtos.descricao : ''}</td>
-          <td class="center">${item.quantidade}x</td>
-          <td class="right">${fmt(item.preco_vend * item.quantidade)}</td>
-        </tr>`;
-      });
-      corpo += `</table>`;
-    }
-
-    // Parcelas
-    if (cred) {
-      const parcelas = (cred.parcelas_crediario || []).sort((a,b) => a.numero - b.numero || a.id - b.id);
-      corpo += `<div class="section-label" style="margin-top:6px">Parcelas do Crediário</div><table class="itens">`;
-      parcelas.forEach(p => {
-        const isPago    = p.status === 'pago';
-        const isVencido = p.status === 'vencido';
-        const cor   = isPago ? '#2e7d32' : isVencido ? '#c62828' : '#e65100';
-        const label = isPago ? 'PAGO' : isVencido ? 'VENCIDO' : 'PENDENTE';
-        const fmtF  = fmtForma || (f => f);
-        const forma = isPago && p.forma_pagamento ? ' · ' + fmtF(p.forma_pagamento) : '';
-        corpo += `<tr>
-          <td style="padding-left:8px;color:#555">
-            <strong>${p.numero}/${cred.parcelas}</strong> &nbsp;|&nbsp;
-            Venc: ${fmtDate(p.vencimento)}
-            ${isPago ? ' · Pago: ' + fmtDate(p.data_pag) + forma : ''}
-          </td>
-          <td></td>
-          <td class="right">
-            <span style="color:${cor};font-weight:700">${fmt(p.valor)}</span>
-            &nbsp;<span style="color:${cor};font-size:8pt;font-weight:600">${label}</span>
-          </td>
-        </tr>`;
-      });
-      corpo += `</table>`;
-    }
-
-    corpo += `</div>`;
-  });
-
-  const win = window.open('', '_blank');
-  win.document.write(`<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Extrato — ${cliente.nome}</title>
-<style>
-  @media print { @page { size: A4 portrait; margin: 12mm 10mm; } }
-  * { font-family: Arial, sans-serif; font-size: 9pt; box-sizing: border-box; margin:0; padding:0; }
-  body { padding: 16px; color: #333; }
-  /* Cabeçalho */
-  .cabecalho { border-bottom: 2px solid #9E8E82; padding-bottom: 12px; margin-bottom: 14px; display:flex; justify-content:space-between; align-items:flex-end; }
-  .cabecalho h1 { font-size: 15pt; color: #9E8E82; margin-bottom: 3px; }
-  .cabecalho .info { font-size: 8pt; color: #888; }
-  .cabecalho .gerado { font-size: 8pt; color: #aaa; text-align:right; }
-  /* KPIs */
-  .kpis { display:flex; gap:8px; margin-bottom:14px; }
-  .kpi { flex:1; border:1px solid #e0e0e0; border-radius:6px; padding:8px 10px; }
-  .kpi .label { font-size:7.5pt; color:#888; text-transform:uppercase; letter-spacing:.4px; margin-bottom:3px; }
-  .kpi .valor { font-size:13pt; font-weight:700; }
-  /* Vendas */
-  .venda { border:1px solid #e8e8e8; border-radius:6px; margin-bottom:12px; overflow:hidden; page-break-inside:avoid; }
-  .venda-header { background:#f7f7f7; padding:7px 10px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; }
-  .venda-header strong { font-size:10pt; }
-  .data { color:#999; font-size:8pt; margin-left:6px; }
-  .badge { border-radius:20px; padding:1px 8px; font-size:7.5pt; font-weight:600; margin-left:6px; }
-  .badge-pag { background:#e3f2fd; color:#1565c0; }
-  .badge-cred { background:#fdf3e7; color:#7b5e3a; }
-  /* Tabelas */
-  .section-label { font-size:7.5pt; color:#aaa; text-transform:uppercase; letter-spacing:.4px; padding:6px 10px 2px; }
-  .itens { width:100%; border-collapse:collapse; }
-  .itens td { padding:4px 10px; border-bottom:1px solid #f5f5f5; font-size:8.5pt; color:#444; }
-  .itens tr:last-child td { border-bottom:none; }
-  .center { text-align:center; width:40px; }
-  .right { text-align:right; width:100px; }
-  /* Rodapé */
-  .rodape { margin-top:16px; font-size:7.5pt; color:#aaa; border-top:1px solid #e0e0e0; padding-top:8px; text-align:center; }
-</style>
-</head><body>
-<div class="cabecalho">
-  <div>
-    <h1>${cliente.nome}</h1>
-    <div class="info">${cliente.telefone ? 'Tel: ' + cliente.telefone : ''}${cliente.cidade ? ' &nbsp;·&nbsp; ' + cliente.cidade : ''}</div>
-  </div>
-  <div class="gerado">Gerado em ${dataImpressao}</div>
-</div>
-<div class="kpis">
-  <div class="kpi">
-    <div class="label">Total em Compras</div>
-    <div class="valor" style="color:#333">${fmt(totalCompras)}</div>
-  </div>
-  <div class="kpi">
-    <div class="label">Total Pago</div>
-    <div class="valor" style="color:#2e7d32">${fmt(totalPago)}</div>
-  </div>
-  <div class="kpi">
-    <div class="label">Saldo Devedor</div>
-    <div class="valor" style="color:${totalPendente > 0 ? '#e65100' : '#2e7d32'}">${fmt(totalPendente)}</div>
-  </div>
-  <div class="kpi">
-    <div class="label">Compras</div>
-    <div class="valor" style="color:#333">${vendasLista.length}</div>
-  </div>
-</div>
-${corpo}
-<div class="rodape">Treemali ERP · Extrato gerado em ${dataImpressao}</div>
-<script>window.print();<\/script>
-</body></html>`);
-  win.document.close();
-}
-
