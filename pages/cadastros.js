@@ -318,7 +318,7 @@ async function carregarVendedores() {
 function renderVendedores(lista) {
   const tbody = document.getElementById('bodyVendedores');
   if (!lista.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="table-loading">Nenhum usuário cadastrado</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="table-loading">Nenhum usuário cadastrado</td></tr>';
     return;
   }
   tbody.innerHTML = lista.map(v => `
