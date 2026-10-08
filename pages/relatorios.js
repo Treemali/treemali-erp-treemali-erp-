@@ -342,9 +342,26 @@ async function gerarRelVendedores(inicio, fim) {
     // Guarda dados para fechamento
     window._dadosVendedores = { mapa, inicio, fim };
 
+    // Verifica quais vendedores já têm fechamento neste período
+    let fechadosNoperiodo = new Set();
+    if (window._supabase) {
+      const inicioDate = inicio.split('T')[0];
+      const fimDate    = fim.split('T')[0];
+      const { data: fechExist } = await window._supabase
+        .from('fechamentos_comissao')
+        .select('usuario_id')
+        .eq('periodo_inicio', inicioDate)
+        .eq('periodo_fim', fimDate);
+      fechadosNoperiodo = new Set((fechExist || []).map(f => String(f.usuario_id)));
+    }
+
     const lista = Object.values(mapa).sort((a,b) => b.total - a.total);
     document.getElementById('relVendedores').innerHTML = lista.length ? lista.map(v => {
-      const comissao = v.total * (v.pct / 100);
+      const comissao  = v.total * (v.pct / 100);
+      const jaFechado = fechadosNoperiodo.has(String(v.uid));
+      const btnFechar = jaFechado
+        ? `<span style="color:var(--color-success);font-size:12px;font-weight:600">✅ Fechado</span>`
+        : `<button class="btn btn-ghost btn-sm" onclick="fecharPeriodoVendedor('${v.uid}')">📋 Fechar</button>`;
       return `<tr>
         <td><strong>${v.nome}</strong></td>
         <td>${v.qtd}</td>
@@ -353,7 +370,7 @@ async function gerarRelVendedores(inicio, fim) {
         <td>${Format.currency(v.qtd>0?v.total/v.qtd:0)}</td>
         <td style="text-align:center">${v.pct ? v.pct + '%' : '—'}</td>
         <td style="font-weight:600;color:var(--color-primary)">${v.pct ? Format.currency(comissao) : '—'}</td>
-        <td><button class="btn btn-ghost btn-sm" onclick="fecharPeriodoVendedor('${v.uid}')">📋 Fechar</button></td>
+        <td>${btnFechar}</td>
       </tr>`;
     }).join('') : '<tr><td colspan="8" class="rel-loading">Sem vendas no período</td></tr>';
 
