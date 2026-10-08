@@ -312,7 +312,7 @@ async function gerarRelVendedores(inicio, fim) {
       const [vendasRes, usuariosRes] = await Promise.all([
         window._supabase
           .from('vendas')
-          .select('vendedor_id, valor_total, lucro, usuarios(id, nome, comissao_pct), itens_venda(desconto)')
+          .select('vendedor_id, created_at, valor_total, lucro, usuarios(id, nome, comissao_pct), itens_venda(desconto)')
           .gte('created_at', inicio).lte('created_at', fim)
           .eq('status', 'concluida'),
         window._supabase
@@ -324,6 +324,32 @@ async function gerarRelVendedores(inicio, fim) {
       if (vendasRes.error) throw vendasRes.error;
       vendas   = vendasRes.data   || [];
       usuarios = usuariosRes.data || [];
+
+      // Busca todos os fechamentos que se sobrepõem ao período selecionado
+      // para excluir vendas que já foram comissionadas
+      const { data: fechamentos } = await window._supabase
+        .from('fechamentos_comissao')
+        .select('usuario_id, periodo_inicio, periodo_fim')
+        .lte('periodo_inicio', fim.split('T')[0])
+        .gte('periodo_fim',    inicio.split('T')[0]);
+
+      // Monta mapa de intervalos fechados por vendedor
+      const intervalosFechados = {};
+      (fechamentos || []).forEach(f => {
+        if (!intervalosFechados[f.usuario_id]) intervalosFechados[f.usuario_id] = [];
+        intervalosFechados[f.usuario_id].push({
+          inicio: new Date(f.periodo_inicio + 'T00:00:00'),
+          fim:    new Date(f.periodo_fim    + 'T23:59:59'),
+        });
+      });
+
+      // Filtra vendas que NÃO estão dentro de nenhum período fechado do vendedor
+      vendas = vendas.filter(v => {
+        const uid = v.usuarios?.id || v.vendedor_id;
+        if (!uid || !intervalosFechados[uid]) return true; // sem fechamento = inclui
+        const dataVenda = new Date(v.created_at);
+        return !intervalosFechados[uid].some(iv => dataVenda >= iv.inicio && dataVenda <= iv.fim);
+      });
     }
 
     const mapa = {};
@@ -342,18 +368,8 @@ async function gerarRelVendedores(inicio, fim) {
     // Guarda dados para fechamento
     window._dadosVendedores = { mapa, inicio, fim };
 
-    // Verifica quais vendedores já têm fechamento neste período
-    let fechadosNoperiodo = new Set();
-    if (window._supabase) {
-      const inicioDate = inicio.split('T')[0];
-      const fimDate    = fim.split('T')[0];
-      const { data: fechExist } = await window._supabase
-        .from('fechamentos_comissao')
-        .select('usuario_id')
-        .eq('periodo_inicio', inicioDate)
-        .eq('periodo_fim', fimDate);
-      fechadosNoperiodo = new Set((fechExist || []).map(f => String(f.usuario_id)));
-    }
+    // Nenhum vendedor está "fechado no período exato" — a lógica agora é por exclusão de vendas
+    const fechadosNoperiodo = new Set();
 
     // Só mostra vendedores que ainda NÃO tiveram o período fechado
     const lista = Object.values(mapa)
