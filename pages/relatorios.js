@@ -355,13 +355,13 @@ async function gerarRelVendedores(inicio, fim) {
       fechadosNoperiodo = new Set((fechExist || []).map(f => String(f.usuario_id)));
     }
 
-    const lista = Object.values(mapa).sort((a,b) => b.total - a.total);
+    // Só mostra vendedores que ainda NÃO tiveram o período fechado
+    const lista = Object.values(mapa)
+      .filter(v => !fechadosNoperiodo.has(String(v.uid)))
+      .sort((a,b) => b.total - a.total);
+
     document.getElementById('relVendedores').innerHTML = lista.length ? lista.map(v => {
-      const comissao  = v.total * (v.pct / 100);
-      const jaFechado = fechadosNoperiodo.has(String(v.uid));
-      const btnFechar = jaFechado
-        ? `<span style="color:var(--color-success);font-size:12px;font-weight:600">✅ Fechado</span>`
-        : `<button class="btn btn-ghost btn-sm" onclick="fecharPeriodoVendedor('${v.uid}')">📋 Fechar</button>`;
+      const comissao = v.total * (v.pct / 100);
       return `<tr>
         <td><strong>${v.nome}</strong></td>
         <td>${v.qtd}</td>
@@ -370,9 +370,9 @@ async function gerarRelVendedores(inicio, fim) {
         <td>${Format.currency(v.qtd>0?v.total/v.qtd:0)}</td>
         <td style="text-align:center">${v.pct ? v.pct + '%' : '—'}</td>
         <td style="font-weight:600;color:var(--color-primary)">${v.pct ? Format.currency(comissao) : '—'}</td>
-        <td>${btnFechar}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="fecharPeriodoVendedor('${v.uid}')">📋 Fechar</button></td>
       </tr>`;
-    }).join('') : '<tr><td colspan="8" class="rel-loading">Sem vendas no período</td></tr>';
+    }).join('') : '<tr><td colspan="8" class="rel-loading" style="color:var(--color-success)">✅ Todos os vendedores já tiveram o período fechado</td></tr>';
 
     // Carrega histórico de fechamentos
     await carregarFechamentos();
