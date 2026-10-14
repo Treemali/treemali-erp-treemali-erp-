@@ -203,13 +203,12 @@ async function carregarBandeirasCrediario() {
 
 function toggleBandeiraCred() {
   const forma = document.getElementById('formaParc').value;
-  const group = document.getElementById('rowBandeiraPagarCred');
+  const group = document.getElementById('groupBandeiraParc');
   if (['credito','debito'].includes(forma)) {
-    group.style.display = 'block';
+    group.classList.remove('hidden');
   } else {
-    group.style.display = 'none';
+    group.classList.add('hidden');
   }
-  atualizarPreviewTaxaCred();
 }
 
 function verParcelas(credId) {
@@ -230,12 +229,17 @@ function verParcelas(credId) {
         <td><strong>${Format.currency(p.valor)}</strong></td>
         <td><span class="badge ${p.status==='pago'?'badge-success':vencida?'badge-danger':'badge-warning'}">${p.status==='pago'?'Pago':vencida?'Vencida':'Pendente'}</span></td>
         <td>${p.data_pag ? Format.date(p.data_pag) : '—'}</td>
-        <td>
+        <td style="display:flex;gap:4px;align-items:center">
           ${p.status !== 'pago' ? `
             <button class="btn-table success" onclick="abrirPagarParcela(${p.id}, ${p.valor}, ${credId})" title="Registrar pagamento">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
             </button>
-          ` : '<span style="color:var(--color-gray-300);font-size:12px">✓</span>'}
+          ` : `
+            <span style="color:var(--color-gray-300);font-size:12px">✓</span>
+            <button class="btn-table danger" onclick="confirmarEstornoParc(${p.id}, ${p.valor}, ${credId})" title="Estornar pagamento" style="opacity:0.6;font-size:10px;padding:2px 6px">
+              ↩
+            </button>
+          `}
         </td>
       </tr>
     `;
@@ -249,10 +253,6 @@ function abrirPagarParcela(parcId, valor, credId) {
     `Confirmar recebimento da parcela de ${Format.currency(valor)}?`;
   document.getElementById('valorPagoParc').value = valor.toFixed(2);
   document.getElementById('dataPagarParc').value = new Date().toISOString().split('T')[0];
-  // Reseta forma e oculta bandeira ao abrir
-  document.getElementById('formaParc').value = 'dinheiro';
-  toggleBandeiraCred();
-  atualizarPreviewTaxaCred();
   document.getElementById('btnConfirmarPagarParc').onclick = async () => {
     const valorPagoRaw = parseFloat(document.getElementById('valorPagoParc').value);
     const forma   = document.getElementById('formaParc').value;
@@ -356,10 +356,10 @@ async function processarPagamentoCascata(credId, valorPagoTotal, forma, dataPag,
       });
       if (errRpc) throw errRpc;
 
-      valorRestante = Math.round((valorRestante - valorAPagar) * 100) / 100;
+      valorRestante -= valorAPagar;
     } else {
       const valorAPagar = valorRestante;
-      const diferenca = Math.round((valorParcela - valorAPagar) * 100) / 100;
+      const diferenca = valorParcela - valorAPagar;
 
       const { error: errUpdate } = await window._supabase
         .from('parcelas_crediario')
@@ -367,18 +367,16 @@ async function processarPagamentoCascata(credId, valorPagoTotal, forma, dataPag,
         .eq('id', parc.id);
       if (errUpdate) throw errUpdate;
 
-      if (diferenca > 0.01) {
-        const { error: errInsert } = await window._supabase
-          .from('parcelas_crediario')
-          .insert({
-            crediario_id: credId,
-            numero:       parc.numero,
-            vencimento:   parc.vencimento,
-            valor:        diferenca,
-            status:       'pendente'
-          });
-        if (errInsert) throw errInsert;
-      }
+      const { error: errInsert } = await window._supabase
+        .from('parcelas_crediario')
+        .insert({
+          crediario_id: credId,
+          numero:       parc.numero,
+          vencimento:   parc.vencimento,
+          valor:        diferenca,
+          status:       'pendente'
+        });
+      if (errInsert) throw errInsert;
 
       const { error: errRpc } = await window._supabase.rpc('processar_pagamento_crediario', {
         p_crediario_id: credId,
@@ -419,7 +417,7 @@ function processarPagamentoCascataDemo(credId, valorPagoTotal, forma, dataPag) {
       valorRestante -= valorParcela;
     } else {
       const valorAPagar = valorRestante;
-      const diferenca = Math.round((valorParcela - valorAPagar) * 100) / 100;
+      const diferenca = valorParcela - valorAPagar;
 
       parc.valor = valorAPagar;
       parc.status = 'pago';
@@ -498,49 +496,118 @@ document.addEventListener('click', e => { if (e.target.classList.contains('modal
 document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.active').forEach(m => fecharModal(m.id)); });
 
 // ══════════════════════════════════════════════
-// PREVIEW DE TAXA NO MODAL DE PAGAMENTO
+// ESTORNO DE PARCELA
 // ══════════════════════════════════════════════
 
-function onChangeFormaPagarCred() {
-  toggleBandeiraCred();
-  atualizarPreviewTaxaCred();
-}
+async function confirmarEstornoParc(parcId, valor, credId) {
+  if (!window._supabase) { Toast.error('Indisponível no modo demo.'); return; }
 
-function atualizarPreviewTaxaCred() {
-  const preview  = document.getElementById('previewTaxaPagarCred');
-  if (!preview) return;
+  // 1. Busca a parcela a estornar
+  const { data: parcela, error: errParc } = await window._supabase
+    .from('parcelas_crediario')
+    .select('*')
+    .eq('id', parcId)
+    .single();
 
-  const forma      = document.getElementById('formaParc')?.value || 'dinheiro';
-  const bandeiraId = parseInt(document.getElementById('bandeiraParc')?.value) || null;
-  const parcelas   = parseInt(document.getElementById('parcelasParc')?.value) || 1;
-  const valor      = parseFloat(document.getElementById('valorPagoParc')?.value) || 0;
+  if (errParc || !parcela) { Toast.error('Erro ao buscar parcela.'); return; }
+  if (parcela.status !== 'pago') { Toast.error('Esta parcela não está paga.'); return; }
 
-  if (!['credito','debito'].includes(forma) || !bandeiraId || valor <= 0) {
-    preview.innerHTML = '';
+  // 2. Busca todas as parcelas do crediário com o mesmo número (mãe + filhas)
+  const { data: irmans } = await window._supabase
+    .from('parcelas_crediario')
+    .select('*')
+    .eq('crediario_id', credId)
+    .eq('numero', parcela.numero)
+    .order('id', { ascending: true });
+
+  const todasIrmas = irmans || [];
+
+  // 3. Verifica se existe filha já paga (bloqueia estorno nesse caso)
+  // Filha = mesma numero, id maior que a mãe, status pago
+  const filhasPagas = todasIrmas.filter(p => p.id !== parcId && p.status === 'pago');
+  if (filhasPagas.length > 0) {
+    Toast.error(
+      'Estorno bloqueado',
+      'O saldo restante desta parcela já foi recebido. Estorne primeiro a parcela filha.'
+    );
     return;
   }
 
-  const tipo = forma === 'debito' ? 'debito' :
-               parcelas === 1    ? 'credito_vista' : 'credito_parcelado';
+  // 4. Identifica filha pendente (gerada por pagamento parcial)
+  const filhaPendente = todasIrmas.find(p => p.id !== parcId && p.status !== 'pago');
 
-  const taxa = (_taxasCred || []).find(t =>
-    t.bandeira_id === bandeiraId &&
-    t.tipo === tipo &&
-    (tipo !== 'credito_parcelado' || t.parcelas === parcelas)
-  );
+  // 5. Calcula valor original da parcela (mãe + filha se existir)
+  const valorOriginal = filhaPendente
+    ? parseFloat((parcela.valor + filhaPendente.valor).toFixed(2))
+    : parcela.valor;
 
-  if (!taxa) {
-    preview.innerHTML = '<span style="color:#888">Taxa não encontrada para esta combinação</span>';
-    return;
+  // 6. Monta mensagem de confirmação clara
+  let msg = `Estornar pagamento da parcela ${parcela.numero}?\n\n`;
+  msg += `• Valor pago: R$ ${parcela.valor.toFixed(2).replace('.', ',')}\n`;
+  if (filhaPendente) {
+    msg += `• Saldo pendente (filha): R$ ${filhaPendente.valor.toFixed(2).replace('.', ',')}\n`;
+    msg += `• Valor original restaurado: R$ ${valorOriginal.toFixed(2).replace('.', ',')}\n`;
+    msg += `\nA parcela filha será removida e o valor original será restaurado.`;
   }
+  msg += `\n\nEsta ação não pode ser desfeita. Confirma?`;
 
-  const valorTaxa = Math.round(valor * taxa.taxa / 100 * 100) / 100;
-  const valorLiq  = Math.round((valor - valorTaxa) * 100) / 100;
+  if (!confirm(msg)) return;
 
-  preview.innerHTML = `
-    <span style="color:#666">Taxa ${taxa.taxa}%:</span>
-    <span style="color:#e53e3e;font-weight:600"> − R$ ${valorTaxa.toFixed(2)}</span>
-    <span style="color:#666"> | Líquido: </span>
-    <span style="font-weight:600">R$ ${valorLiq.toFixed(2)}</span>
-  `;
+  const liberar = bloquearBtn ? bloquearBtn('btnConfirmarPagarParc', 'Estornando...') : () => {};
+
+  try {
+    // 7. Reverte a parcela mãe para pendente e restaura valor original
+    const { error: errUpdate } = await window._supabase
+      .from('parcelas_crediario')
+      .update({
+        status:         'pendente',
+        valor:          valorOriginal,
+        data_pag:       null,
+        forma_pagamento: null,
+        taxa_aplicada:  null,
+        valor_taxa:     null,
+        valor_liquido:  null,
+        bandeira_id:    null,
+      })
+      .eq('id', parcId);
+
+    if (errUpdate) throw errUpdate;
+
+    // 8. Remove a filha pendente (se existir)
+    if (filhaPendente) {
+      const { error: errDelete } = await window._supabase
+        .from('parcelas_crediario')
+        .delete()
+        .eq('id', filhaPendente.id);
+      if (errDelete) throw errDelete;
+    }
+
+    // 9. Verifica se o crediário precisa voltar para ativo (estava quitado)
+    const { data: cred } = await window._supabase
+      .from('crediario')
+      .select('status')
+      .eq('id', credId)
+      .single();
+
+    if (cred?.status === 'quitado') {
+      await window._supabase
+        .from('crediario')
+        .update({ status: 'ativo', updated_at: new Date().toISOString() })
+        .eq('id', credId);
+    }
+
+    Toast.success(
+      'Estorno realizado!',
+      `Parcela ${parcela.numero} voltou para pendente com valor R$ ${valorOriginal.toFixed(2).replace('.', ',')}.`
+    );
+
+    // Recarrega
+    await carregarCrediario();
+    verParcelas(credId);
+
+  } catch (err) {
+    Toast.error('Erro ao estornar: ' + err.message);
+  } finally {
+    liberar();
+  }
 }
