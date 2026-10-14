@@ -203,12 +203,11 @@ async function carregarBandeirasCrediario() {
 
 function toggleBandeiraCred() {
   const forma = document.getElementById('formaParc').value;
-  const group = document.getElementById('groupBandeiraParc');
-  if (['credito','debito'].includes(forma)) {
-    group.classList.remove('hidden');
-  } else {
-    group.classList.add('hidden');
+  const group = document.getElementById('rowBandeiraPagarCred');
+  if (group) {
+    group.style.display = ['credito','debito'].includes(forma) ? 'block' : 'none';
   }
+  atualizarPreviewTaxaCred();
 }
 
 function verParcelas(credId) {
@@ -253,6 +252,10 @@ function abrirPagarParcela(parcId, valor, credId) {
     `Confirmar recebimento da parcela de ${Format.currency(valor)}?`;
   document.getElementById('valorPagoParc').value = valor.toFixed(2);
   document.getElementById('dataPagarParc').value = new Date().toISOString().split('T')[0];
+  // Reseta forma e oculta bandeira ao abrir
+  document.getElementById('formaParc').value = 'dinheiro';
+  toggleBandeiraCred();
+  atualizarPreviewTaxaCred();
   document.getElementById('btnConfirmarPagarParc').onclick = async () => {
     const valorPagoRaw = parseFloat(document.getElementById('valorPagoParc').value);
     const forma   = document.getElementById('formaParc').value;
@@ -610,4 +613,52 @@ async function confirmarEstornoParc(parcId, valor, credId) {
   } finally {
     liberar();
   }
+}
+
+// ══════════════════════════════════════════════
+// PREVIEW DE TAXA E FORMA DE PAGAMENTO
+// ══════════════════════════════════════════════
+
+function onChangeFormaPagarCred() {
+  toggleBandeiraCred();
+  atualizarPreviewTaxaCred();
+}
+
+function atualizarPreviewTaxaCred() {
+  const preview = document.getElementById('previewTaxaPagarCred');
+  if (!preview) return;
+
+  const forma      = document.getElementById('formaParc')?.value || 'dinheiro';
+  const bandeiraId = parseInt(document.getElementById('bandeiraParc')?.value) || null;
+  const parcelas   = parseInt(document.getElementById('parcelasParc')?.value) || 1;
+  const valor      = parseFloat(document.getElementById('valorPagoParc')?.value) || 0;
+
+  if (!['credito','debito'].includes(forma) || !bandeiraId || valor <= 0) {
+    preview.innerHTML = '';
+    return;
+  }
+
+  const tipo = forma === 'debito' ? 'debito' :
+               parcelas === 1    ? 'credito_vista' : 'credito_parcelado';
+
+  const taxa = (_taxasCred || []).find(t =>
+    t.bandeira_id === bandeiraId &&
+    t.tipo === tipo &&
+    (tipo !== 'credito_parcelado' || t.parcelas === parcelas)
+  );
+
+  if (!taxa) {
+    preview.innerHTML = '<span style="color:#888">Taxa não encontrada</span>';
+    return;
+  }
+
+  const valorTaxa = Math.round(valor * taxa.taxa / 100 * 100) / 100;
+  const valorLiq  = Math.round((valor - valorTaxa) * 100) / 100;
+
+  preview.innerHTML = `
+    <span style="color:#666">Taxa ${taxa.taxa}%:</span>
+    <span style="color:#e53e3e;font-weight:600"> − R$ ${valorTaxa.toFixed(2)}</span>
+    <span style="color:#666"> | Líquido: </span>
+    <span style="font-weight:600">R$ ${valorLiq.toFixed(2)}</span>
+  `;
 }
