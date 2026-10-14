@@ -660,3 +660,95 @@ function copiarRelatorio() {
     Toast.success('Copiado!', 'Relatório copiado para a área de transferência.')
   );
 }
+
+// ══════════════════════════════════════════════
+// BUSCA DE CLIENTE — EXTRATO
+// ══════════════════════════════════════════════
+
+function onChangeTipoExtrato() {
+  const tipo = document.getElementById('tipoFiltroExtrato')?.value || 'todos';
+  const statusSel = document.getElementById('statusFiltroExtrato');
+  if (statusSel) {
+    statusSel.style.display = tipo === 'crediario' ? '' : 'none';
+    if (tipo !== 'crediario') statusSel.value = 'todos';
+  }
+}
+
+function _getDropdownClienteRel() {
+  let dd = document.getElementById('dropdownClienteRel');
+  if (!dd) {
+    dd = document.createElement('div');
+    dd.id = 'dropdownClienteRel';
+    dd.style.cssText = [
+      'display:none','position:fixed','background:#fff',
+      'border:1px solid #ddd','border-radius:8px',
+      'box-shadow:0 6px 20px rgba(0,0,0,0.15)',
+      'max-height:240px','overflow-y:auto','z-index:99999','min-width:260px'
+    ].join(';');
+    document.body.appendChild(dd);
+  }
+  return dd;
+}
+
+function _posicionarDropdownClienteRel() {
+  const input = document.getElementById('buscaClienteRel');
+  if (!input) return;
+  const dd = _getDropdownClienteRel();
+  const rect = input.getBoundingClientRect();
+  dd.style.top  = (rect.bottom + 4) + 'px';
+  dd.style.left = rect.left + 'px';
+  dd.style.width = rect.width + 'px';
+}
+
+function filtrarClientesRel(termo) {
+  const dd = _getDropdownClienteRel();
+  document.getElementById('clienteIdRel').value = '';
+  if (!termo.trim()) { dd.style.display = 'none'; return; }
+
+  const filtrados = (_clientesRel || []).filter(c =>
+    c.nome.toLowerCase().includes(termo.toLowerCase().trim())
+  );
+  _posicionarDropdownClienteRel();
+
+  if (!filtrados.length) {
+    dd.innerHTML = '<div style="padding:10px 14px;color:#888;font-size:14px;">Nenhum cliente encontrado</div>';
+    dd.style.display = 'block';
+    return;
+  }
+
+  dd.innerHTML = filtrados.map(c => {
+    const nomeEsc = c.nome.replace(/'/g, "\\'");
+    return `<div onmousedown="selecionarClienteRel(${c.id}, '${nomeEsc}')"
+      style="padding:10px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid #f0f0f0;"
+      onmouseover="this.style.background='#f5f5f5'"
+      onmouseout="this.style.background=''">
+      <div style="font-weight:500">${c.nome}</div>
+      ${c.cidade ? `<div style="font-size:12px;color:#888">${c.cidade}</div>` : ''}
+    </div>`;
+  }).join('');
+  dd.style.display = 'block';
+}
+
+function selecionarClienteRel(id, nome) {
+  document.getElementById('clienteIdRel').value = id;
+  document.getElementById('buscaClienteRel').value = nome;
+  const dd = document.getElementById('dropdownClienteRel');
+  if (dd) dd.style.display = 'none';
+}
+
+function mostrarDropdownClienteRel() {
+  const termo = document.getElementById('buscaClienteRel').value;
+  if (termo.trim()) { _posicionarDropdownClienteRel(); filtrarClientesRel(termo); }
+}
+
+function esconderDropdownClienteRel() {
+  setTimeout(() => {
+    const dd = document.getElementById('dropdownClienteRel');
+    if (dd) dd.style.display = 'none';
+  }, 180);
+}
+
+window.addEventListener('scroll', () => {
+  const dd = document.getElementById('dropdownClienteRel');
+  if (dd && dd.style.display !== 'none') _posicionarDropdownClienteRel();
+}, true);
