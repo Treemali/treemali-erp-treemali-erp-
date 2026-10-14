@@ -651,35 +651,6 @@ async function executarCancelamento(vendaId, motivo) {
       return;
     }
 
-    // 5. Cancela crediário vinculado (se existir)
-    const { data: cred } = await window._supabase
-      .from('crediario')
-      .select('id')
-      .eq('venda_id', vendaId)
-      .single();
-
-    if (cred?.id) {
-      // Deleta parcelas pendentes
-      await window._supabase
-        .from('parcelas_crediario')
-        .delete()
-        .eq('crediario_id', cred.id)
-        .eq('status', 'pendente');
-
-      // Deleta parcelas vencidas (ainda não pagas)
-      await window._supabase
-        .from('parcelas_crediario')
-        .delete()
-        .eq('crediario_id', cred.id)
-        .eq('status', 'vencido');
-
-      // Marca crediário como cancelado
-      await window._supabase
-        .from('crediario')
-        .update({ status: 'cancelado', updated_at: new Date().toISOString() })
-        .eq('id', cred.id);
-    }
-
     fecharModal('modalCancelarVenda');
     Toast.success('Venda cancelada!', 'Estoque revertido e removida dos relatórios.');
     carregarHistorico();
@@ -1058,8 +1029,57 @@ async function salvarEdicaoItens() {
       await recalcularVenda(_vendaEditarItensID);
     }
 
+    // 4. Atualiza crediário vinculado (se existir)
+    const novoTotal = parseFloat(parseFloat(preview?.dataset.total || 0).toFixed(2));
+    if (novoTotal > 0) {
+      const { data: cred } = await window._supabase
+        .from('crediario')
+        .select('id, valor_total, parcelas')
+        .eq('venda_id', _vendaEditarItensID)
+        .single();
+
+      if (cred) {
+        // Atualiza o valor_total do crediário
+        await window._supabase
+          .from('crediario')
+          .update({ valor_total: novoTotal, updated_at: new Date().toISOString() })
+          .eq('id', cred.id);
+
+        // Recalcula e atualiza parcelas PENDENTES proporcionalmente
+        const { data: parcelas } = await window._supabase
+          .from('parcelas_crediario')
+          .select('id, numero, valor, status')
+          .eq('crediario_id', cred.id)
+          .in('status', ['pendente', 'vencido'])
+          .order('numero');
+
+        if (parcelas && parcelas.length > 0) {
+          // Total das parcelas pendentes antes
+          const totalPendente = parcelas.reduce((s, p) => s + (p.valor || 0), 0);
+          // Total já pago = valor_total antigo - total pendente
+          const totalPago = cred.valor_total - totalPendente;
+          // Novo total pendente = novo total da venda - total já pago
+          const novoTotalPendente = Math.max(0, novoTotal - totalPago);
+          // Distribui proporcionalmente entre as parcelas pendentes
+          const valorPorParcela = parseFloat((novoTotalPendente / parcelas.length).toFixed(2));
+          // Ajuste de centavos na última parcela
+          const ajuste = parseFloat((novoTotalPendente - valorPorParcela * parcelas.length).toFixed(2));
+
+          for (let i = 0; i < parcelas.length; i++) {
+            const valor = i === parcelas.length - 1
+              ? parseFloat((valorPorParcela + ajuste).toFixed(2))
+              : valorPorParcela;
+            await window._supabase
+              .from('parcelas_crediario')
+              .update({ valor })
+              .eq('id', parcelas[i].id);
+          }
+        }
+      }
+    }
+
     fecharModal('modalEditarItens');
-    Toast.success('Venda atualizada!', 'Preços, totais e financeiro ajustados.');
+    Toast.success('Venda atualizada!', 'Preços, totais e crediário ajustados.');
     carregarHistorico();
   } catch(e) {
     erroEl.textContent = 'Erro: ' + e.message;
