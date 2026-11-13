@@ -324,6 +324,8 @@ function abrirNovoProduto() {
   document.getElementById('produtoPrecoVenda').value = '';
   document.getElementById('produtoPrecoAvista').value = '';
   document.getElementById('produtoEstoqueAtual').value = '0';
+  document.getElementById('produtoEstoqueAtual').disabled = false;
+  document.getElementById('produtoEstoqueAtual').title = '';
   document.getElementById('produtoEstoqueMin').value = '5';
   document.getElementById('produtoLocalizacao').value = '';
   document.getElementById('produtoAtivo').value = 'true';
@@ -346,6 +348,9 @@ function editarProduto(id) {
   document.getElementById('produtoPrecoVenda').value = p.preco_venda || '';
   document.getElementById('produtoPrecoAvista').value = p.preco_avista || '';
   document.getElementById('produtoEstoqueAtual').value = p.estoque_atual || 0;
+  // O estoque de um produto existente só muda por Ajuste/Entrada (que ficam registrados)
+  document.getElementById('produtoEstoqueAtual').disabled = true;
+  document.getElementById('produtoEstoqueAtual').title = 'Para alterar o estoque use Ajuste ou Entrada';
   document.getElementById('produtoEstoqueMin').value = p.estoque_minimo || 5;
   document.getElementById('produtoLocalizacao').value = p.localizacao || '';
   document.getElementById('produtoAtivo').value = String(p.ativo);
@@ -394,20 +399,25 @@ async function salvarProduto() {
   }
 
   try {
-    let error;
+    let error, novoId = null;
     if (id) {
+      // Edição não mexe no estoque (evita sobrescrever com valor antigo da tela e sem registro)
+      delete dados.estoque_atual;
       ({ error } = await window._supabase.from('produtos').update(dados).eq('id', id));
     } else {
-      ({ error } = await window._supabase.from('produtos').insert(dados));
+      const r = await window._supabase.from('produtos').insert(dados).select('id').single();
+      error = r.error; novoId = r.data?.id || null;
     }
 
     // Se o erro for de SKU duplicado, tenta salvar sem SKU
     if (error && (error.message?.includes('unique') || error.message?.includes('duplicate') || error.message?.includes('sku'))) {
-      const { error: err2 } = id 
+      const r2 = id 
         ? await window._supabase.from('produtos').update({ ...dados, sku: null }).eq('id', id)
-        : await window._supabase.from('produtos').insert({ ...dados, sku: null });
+        : await window._supabase.from('produtos').insert({ ...dados, sku: null }).select('id').single();
+      const err2 = r2.error;
       
       if (!err2) {
+        if (!id) await registrarEstoqueInicial(r2.data?.id, dados.estoque_atual);
         fecharModal('modalProduto');
         Toast.warning('Produto salvo!', 'O SKU informado já existe — produto salvo sem SKU.');
         carregarProdutos();
@@ -418,6 +428,8 @@ async function salvarProduto() {
 
     if (error) throw error;
 
+    if (!id) await registrarEstoqueInicial(novoId, dados.estoque_atual);
+
     fecharModal('modalProduto');
     Toast.success('Produto salvo com sucesso!');
     carregarProdutos();
@@ -426,6 +438,20 @@ async function salvarProduto() {
   } finally {
     liberar();
   }
+}
+
+// Produto novo cadastrado já com estoque: registra como "entrada" para o histórico bater com o saldo
+async function registrarEstoqueInicial(produtoId, qtd) {
+  if (!produtoId || !(qtd > 0)) return;
+  const user = Auth.getUser();
+  const { error } = await window._supabase.from('movimentacoes_estoque').insert({
+    produto_id: produtoId,
+    tipo:       'entrada',
+    quantidade: qtd,
+    referencia: 'Estoque inicial (cadastro do produto)',
+    usuario_id: user?.id || null,
+  });
+  if (error) console.error('Estoque inicial não registrado:', error.message);
 }
 
 /**
