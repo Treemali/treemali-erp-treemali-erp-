@@ -604,55 +604,24 @@ async function executarCancelamento(vendaId, motivo) {
   }
 
   try {
-    // 1. Busca itens da venda
-    const { data: itens } = await window._supabase
-      .from('itens_venda').select('produto_id, quantidade').eq('venda_id', vendaId);
+    // Tudo numa única operação no banco: estoque, histórico, status da venda e crediário.
+    // Se algo falhar, nada é alterado. Se a venda já estiver cancelada, o banco recusa.
+    const { data: res, error: errCancel } = await window._supabase.rpc('cancelar_venda', {
+      p_venda_id:   vendaId,
+      p_motivo:     motivo,
+      p_usuario_id: Auth.getUser()?.id || null,
+    });
 
-    // 2. Reverte estoque de cada produto
-    for (const item of (itens || [])) {
-      const { data: prod } = await window._supabase
-        .from('produtos').select('estoque_atual').eq('id', item.produto_id).single();
-      if (prod) {
-        await window._supabase.from('produtos')
-          .update({ estoque_atual: prod.estoque_atual + item.quantidade, updated_at: new Date().toISOString() })
-          .eq('id', item.produto_id);
-      }
-      await window._supabase.from('movimentacoes_estoque').insert({
-        produto_id: item.produto_id,
-        tipo:       'estorno_venda',
-        quantidade:  item.quantidade,
-        referencia: `Cancelamento venda #${vendaId} — ${motivo}`,
-        usuario_id:  Auth.getUser()?.id || null,
-      });
-    }
-
-    // 3. Marca venda como cancelada — verifica erro explicitamente
-    const { error: errUpdate } = await window._supabase
-      .from('vendas')
-      .update({
-        status:     'cancelada',
-        observacao:  motivo,
-        updated_at:  new Date().toISOString()
-      })
-      .eq('id', vendaId);
-
-    if (errUpdate) {
-      console.error('Erro ao cancelar venda:', errUpdate);
-      Toast.error('Erro', 'Não foi possível cancelar a venda: ' + errUpdate.message);
-      return;
-    }
-
-    // 4. Confirma que o update funcionou
-    const { data: check } = await window._supabase
-      .from('vendas').select('status').eq('id', vendaId).single();
-
-    if (check?.status !== 'cancelada') {
-      Toast.error('Erro', 'A venda não foi cancelada no banco. Verifique as permissões RLS.');
+    if (errCancel) {
+      Toast.error('Não foi possível cancelar', errCancel.message);
       return;
     }
 
     fecharModal('modalCancelarVenda');
-    Toast.success('Venda cancelada!', 'Estoque revertido e removida dos relatórios.');
+    Toast.success('Venda cancelada!', 'Estoque devolvido e crediário anulado.');
+    if (res && res.recebido_crediario > 0) {
+      Toast.warning('Atenção', `R$ ${Number(res.recebido_crediario).toFixed(2).replace('.', ',')} já recebidos nas parcelas continuam registrados no financeiro.`);
+    }
     carregarHistorico();
 
   } catch (err) {
@@ -949,21 +918,16 @@ async function adicionarItemNaVenda() {
       erroEl.classList.remove('hidden'); liberar(); return;
     }
 
-    // Insere item na venda
-    const { data: novoItem, error } = await window._supabase.from('itens_venda').insert({
-      venda_id:   _vendaEditarItensID,
-      produto_id:  prodId,
-      quantidade:  qtd,
-      preco_vend:  preco,
-      preco_unit:  preco,
-    }).select().single();
+    // Insere o item, baixa o estoque e registra a movimentação numa única operação no banco
+    const { error } = await window._supabase.rpc('adicionar_item_venda', {
+      p_venda_id:   _vendaEditarItensID,
+      p_produto_id: prodId,
+      p_quantidade: qtd,
+      p_preco:      preco,
+      p_usuario_id: Auth.getUser()?.id || null,
+    });
 
     if (error) throw error;
-
-    // Abate estoque
-    await window._supabase.from('produtos')
-      .update({ estoque_atual: prod.estoque_atual - qtd, updated_at: new Date().toISOString() })
-      .eq('id', prodId);
 
     // Atualiza valor total da venda
     await recalcularVenda(_vendaEditarItensID);
@@ -1002,15 +966,16 @@ async function salvarEdicaoItens() {
     }
 
     // 2. Remove itens marcados e devolve estoque
-    for (const { itemId, prodId, qtd } of _itensParaRemover) {
-      await window._supabase.from('itens_venda').delete().eq('id', itemId);
-
-      const { data: prod } = await window._supabase
-        .from('produtos').select('estoque_atual').eq('id', prodId).single();
-      if (prod) {
-        await window._supabase.from('produtos')
-          .update({ estoque_atual: prod.estoque_atual + qtd, updated_at: new Date().toISOString() })
-          .eq('id', prodId);
+    // Cada remoção é atômica no banco (remove o item, devolve o estoque e registra a movimentação)
+    for (const { itemId } of _itensParaRemover) {
+      const { error: errRem } = await window._supabase.rpc('remover_item_venda', {
+        p_item_id:    itemId,
+        p_usuario_id: Auth.getUser()?.id || null,
+      });
+      if (errRem) {
+        // Mantém o total da venda coerente com os itens que realmente existem
+        try { await recalcularVenda(_vendaEditarItensID); } catch (_) {}
+        throw errRem;
       }
     }
 

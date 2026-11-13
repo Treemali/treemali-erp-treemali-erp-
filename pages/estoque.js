@@ -547,22 +547,16 @@ async function salvarAjuste() {
 
   try {
     const user = Auth.getUser();
-    const diff = novaQtd - (produto?.estoque_atual || 0);
 
-    // Atualiza estoque
-    const { error } = await window._supabase
-      .from('produtos').update({ estoque_atual: novaQtd, updated_at: new Date().toISOString() }).eq('id', id);
+    // A diferença é calculada no banco, com a linha travada — não pelo valor que estava na tela
+    const { error } = await window._supabase.rpc('ajustar_estoque', {
+      p_produto_id: Number(id),
+      p_nova_qtd:   novaQtd,
+      p_motivo:     motivo || 'Ajuste manual',
+      p_usuario_id: user?.id || null,
+    });
 
     if (error) throw error;
-
-    // Registra movimentação
-    await window._supabase.from('movimentacoes_estoque').insert({
-      produto_id:  Number(id),
-      tipo:        'ajuste',
-      quantidade:  diff,
-      referencia:  motivo || 'Ajuste manual',
-      usuario_id:  user?.id || null,
-    });
 
     fecharModal('modalAjuste');
     Toast.success('Estoque ajustado com sucesso!');

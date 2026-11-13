@@ -1286,65 +1286,23 @@ async function cancelarVenda(vendaId, motivo) {
   }
 
   try {
-    // 1. Busca os itens da venda para reverter estoque
-    const { data: itens } = await window._supabase
-      .from('itens_venda')
-      .select('produto_id, quantidade')
-      .eq('venda_id', vendaId);
+    // Tudo numa única operação no banco: estoque, histórico, status da venda e crediário.
+    const { data: res, error: errCancel } = await window._supabase.rpc('cancelar_venda', {
+      p_venda_id:   vendaId,
+      p_motivo:     motivo,
+      p_usuario_id: Auth.getUser()?.id || null,
+    });
 
-    // 2. Reverte estoque de cada produto
-    for (const item of (itens || [])) {
-      const { data: prod } = await window._supabase
-        .from('produtos').select('estoque_atual').eq('id', item.produto_id).single();
-      if (prod) {
-        await window._supabase.from('produtos')
-          .update({ estoque_atual: prod.estoque_atual + item.quantidade, updated_at: new Date().toISOString() })
-          .eq('id', item.produto_id);
-      }
-      await window._supabase.from('movimentacoes_estoque').insert({
-        produto_id:  item.produto_id,
-        tipo:        'estorno_venda',
-        quantidade:   item.quantidade,
-        referencia:  `Cancelamento venda #${vendaId} — ${motivo}`,
-        usuario_id:   Auth.getUser()?.id || null,
-      });
-    }
-
-    // 3. Marca venda como cancelada com o motivo
-    await window._supabase.from('vendas')
-      .update({
-        status:     'cancelada',
-        observacao: motivo,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', vendaId);
-
-    // 4. Limpeza de Crediário (Se houver)
-    // Procuramos se existe um crediário vinculado a esta venda
-    const { data: cred } = await window._supabase
-      .from('crediario')
-      .select('id')
-      .eq('venda_id', vendaId)
-      .single();
-
-    if (cred) {
-      // Cancela o contrato de crediário
-      await window._supabase
-        .from('crediario')
-        .update({ status: 'cancelado' })
-        .eq('id', cred.id);
-
-      // Cancela todas as parcelas vinculadas
-      await window._supabase
-        .from('parcelas_crediario')
-        .update({ status: 'cancelado' })
-        .eq('crediario_id', cred.id);
-      
-      console.log(`Crediário #${cred.id} e suas parcelas foram cancelados.`);
+    if (errCancel) {
+      Toast.error('Não foi possível cancelar', errCancel.message);
+      return;
     }
 
     fecharModal('modalCancelarVenda');
-    Toast.success('Venda cancelada!', 'Estoque revertido e crediário anulado.');
+    Toast.success('Venda cancelada!', 'Estoque devolvido e crediário anulado.');
+    if (res && res.recebido_crediario > 0) {
+      Toast.warning('Atenção', `R$ ${Number(res.recebido_crediario).toFixed(2).replace('.', ',')} já recebidos nas parcelas continuam registrados no financeiro.`);
+    }
     verHistoricoVendas();
 
   } catch (err) {
