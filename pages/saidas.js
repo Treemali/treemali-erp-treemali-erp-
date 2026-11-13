@@ -322,19 +322,27 @@ async function salvarSaida() {
     if (error) { mostrarErroModal('erroSaida', error.message); setBtnLoading('btnSalvarSaida', false); return; }
 
     // 2. Atualiza Estoque de forma atômica (previne Race Condition)
-    await window._supabase.rpc('decrementar_estoque', {
+    const { error: errBaixa } = await window._supabase.rpc('decrementar_estoque', {
       p_produto_id: prodId,
       p_quantidade: qtd
     });
+    if (errBaixa) {
+      // Sem estoque (ou falha na baixa): desfaz a saída que acabou de ser registrada
+      await window._supabase.from('saidas_nao_comerciais').delete().eq('id', saida.id);
+      mostrarErroModal('erroSaida', errBaixa.message);
+      setBtnLoading('btnSalvarSaida', false);
+      return;
+    }
 
     // 3. Registra movimentação
-    await window._supabase.from('movimentacoes_estoque').insert({
+    const { error: errMov } = await window._supabase.from('movimentacoes_estoque').insert({
       produto_id:  prodId,
       tipo:        'saida_nao_comercial',
       quantidade:  -qtd,
       referencia:  `${CAT_LABELS[categoria]} — ${destino}`,
       usuario_id:  Auth.getUser()?.id || null,
     });
+    if (errMov) console.error('Movimentação da saída não registrada:', errMov.message);
 
     // 4. Lança como despesa se solicitado
     if (lancar) {

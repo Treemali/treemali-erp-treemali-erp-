@@ -890,6 +890,7 @@ const ErrorTranslator = {
     const m = msg.toLowerCase();
     
     if (m.includes('duplicate key')) return 'Este registro já existe no sistema.';
+    if (m.includes('estoque insuficiente')) return msg;
     if (m.includes('insufficient'))  return 'Estoque insuficiente para um ou mais produtos.';
     if (m.includes('network') || m.includes('fetch')) return 'Erro de conexão. Verifique sua internet.';
     if (m.includes('foreign key')) return 'Erro de vínculo: registro relacionado não encontrado.';
@@ -989,46 +990,24 @@ async function registrarCondicional() {
     return;
   }
 
-  const { data: cond, error } = await window._supabase.from('condicionais').insert({
-    cliente_id:      clienteId,
-    vendedor_id:     user?.id || null,
-    prazo_devolucao: prazo,
-    observacao:      obs || null,
-    status:          'em_condicional',
-  }).select().single();
+  // Cria o condicional, os itens, a baixa de estoque, as movimentações e o histórico numa única
+  // operação no banco. Se faltar estoque em qualquer item, nada é criado.
+  const itens = _estado.itens.map(i => ({
+    produto_id: i.produto.id,
+    qtd:        i.qtd,
+    preco_unit: i.precoUnitario,
+  }));
+
+  const { error } = await window._supabase.rpc('criar_condicional', {
+    p_cliente_id:  clienteId,
+    p_vendedor_id: user?.id || null,
+    p_prazo:       prazo,
+    p_observacao:  obs || null,
+    p_itens:       itens,
+    p_usuario_id:  user?.id || null,
+  });
 
   if (error) throw new Error(error.message);
-
-  for (const item of _estado.itens) {
-    await window._supabase.from('itens_condicional').insert({
-      condicional_id:   cond.id,
-      produto_id:       item.produto.id,
-      quantidade_orig:  item.qtd,
-      quantidade_atual: item.qtd,
-      preco_unit:       item.precoUnitario,
-    });
-
-    // Reserva no estoque (saída como condicional) de forma atômica
-    await window._supabase.rpc('decrementar_estoque', {
-      p_produto_id: item.produto.id,
-      p_quantidade: item.qtd
-    });
-
-    await window._supabase.from('movimentacoes_estoque').insert({
-      produto_id: item.produto.id,
-      tipo:       'saida_condicional',
-      quantidade: -item.qtd,
-      referencia: `Condicional #${cond.id}`,
-      usuario_id: user?.id || null,
-    });
-  }
-
-  await window._supabase.from('historico_condicional').insert({
-    condicional_id: cond.id,
-    acao:           'criacao',
-    descricao:      `Condicional criada com ${_estado.itens.length} produto(s). Prazo: ${prazo}`,
-    usuario_id:     user?.id || null,
-  });
 
   Toast.success('Condicional registrada!', `Prazo de devolução: ${Format.date(prazo)}`);
   novaVenda();
