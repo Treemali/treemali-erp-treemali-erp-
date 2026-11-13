@@ -1213,16 +1213,51 @@ async function salvarNovoItemCond() {
     return;
   }
 
-  const { error } = await window._supabase.from('itens_condicional').insert({
+  // 1. Confere se há estoque disponível (a peça precisa existir para sair em condicional)
+  const { data: prodAtual, error: errProd } = await window._supabase
+    .from('produtos').select('estoque_atual, nome').eq('id', prodId).single();
+  if (errProd || !prodAtual) {
+    erroEl.textContent = 'Erro ao consultar o estoque do produto.'; erroEl.classList.remove('hidden'); liberar(); return;
+  }
+  if ((prodAtual.estoque_atual || 0) < qtd) {
+    erroEl.textContent = `Estoque insuficiente: disponível ${prodAtual.estoque_atual || 0} un. de ${prodAtual.nome}.`;
+    erroEl.classList.remove('hidden'); liberar(); return;
+  }
+
+  // 2. Insere o item
+  const { data: novoItem, error } = await window._supabase.from('itens_condicional').insert({
     condicional_id:  condId,
     produto_id:      prodId,
     quantidade_orig: qtd,
     quantidade_atual:qtd,
     preco_unit:      preco,
     status:          'pendente',
-  });
+  }).select('id').single();
 
   if (error) { erroEl.textContent = 'Erro: ' + error.message; erroEl.classList.remove('hidden'); liberar(); return; }
+
+  // 3. Baixa o estoque de forma atômica (mesma função usada ao criar o condicional)
+  const { error: errBaixa } = await window._supabase.rpc('decrementar_estoque', {
+    p_produto_id: prodId,
+    p_quantidade: qtd
+  });
+  if (errBaixa) {
+    // Desfaz o item para não ficar condicional sem baixa de estoque
+    await window._supabase.from('itens_condicional').delete().eq('id', novoItem.id);
+    erroEl.textContent = 'Erro ao baixar o estoque: ' + errBaixa.message + ' — o item não foi adicionado.';
+    erroEl.classList.remove('hidden'); liberar(); return;
+  }
+
+  // 4. Registra a movimentação
+  const userMov = typeof Auth !== 'undefined' ? Auth.getUser() : null;
+  const { error: errMov } = await window._supabase.from('movimentacoes_estoque').insert({
+    produto_id: prodId,
+    tipo:       'saida_condicional',
+    quantidade: -qtd,
+    referencia: `Condicional #${condId}`,
+    usuario_id: userMov?.id || null,
+  });
+  if (errMov) console.error('Movimentação não registrada:', errMov.message);
 
   fecharModal('modalAddItemCond');
   Toast.success('Item adicionado ao condicional!');
